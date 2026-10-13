@@ -3,7 +3,7 @@
     <head>
         <!-- Title and Icon -->
 
-        <title>Send large files free, no upload, no size limit | VCPeer Send</title>
+        <title>Send large files free — WeTransfer alternative | VCPeer Send</title>
         <link rel="shortcut icon" href="../images/logo.svg" />
         <link rel="apple-touch-icon" href="../images/logo.svg" />
 
@@ -16,7 +16,7 @@
 
         <meta
             name="description"
-            content="Send large files free with no upload and no size limit. Drop a file, share a link or QR code, and it streams peer-to-peer straight to the other browser. We never see or store your files."
+            content="Send large files free. Upload and get a link, or send big files by email — a free WeTransfer alternative, encrypted at rest, up to 2 GB per transfer. Or skip the upload entirely and send directly, browser-to-browser, with no size limit."
         />
         <link rel="canonical" href="https://vcpeer.com/send" />
 
@@ -24,10 +24,10 @@
 
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="VCPeer" />
-        <meta property="og:title" content="Send large files free, no upload, no size limit" />
+        <meta property="og:title" content="Send large files free — a WeTransfer alternative" />
         <meta
             property="og:description"
-            content="Drop a file, share a link or QR code, and it streams peer-to-peer straight to the other browser. No account, no upload, no size limit."
+            content="Upload and get a link, or send big files by email — free, encrypted at rest, up to 2 GB per transfer. Or send directly between browsers with no size limit at all."
         />
         <meta property="og:image" content="https://vcpeer.com/images/preview.png" />
         <meta property="og:url" content="https://vcpeer.com/send" />
@@ -71,11 +71,12 @@
                     <div class="container">
                         <div class="hero-inner section-inner center-content">
                             <h1 class="mt-0 mb-16 reveal-from-bottom" data-reveal-delay="150" id="sendHeadline">
-                                Send large files. No upload, no size limit.
+                                Send large files free. A WeTransfer alternative.
                             </h1>
                             <p class="mt-0 mb-32 reveal-from-bottom" data-reveal-delay="300" id="sendSubhead">
-                                Drop a file, share the link or QR code, and it streams directly to the other browser
-                                over a peer-to-peer connection. Nothing touches our servers.
+                                Upload and get a link, or send big files by email — encrypted at rest, up to 2 GB per
+                                transfer. Or skip the upload: send directly browser-to-browser with no size limit at
+                                all.
                             </p>
                         </div>
                     </div>
@@ -92,79 +93,309 @@
                                     />
                                 </svg>
                                 <span id="sendBannerText"
-                                    >Keep this tab open until the transfer finishes. Files go directly between browsers
-                                    — we never see them.</span
+                                    >"Send a link" uploads are encrypted at rest on our server (not end-to-end) so we
+                                    can build zip downloads and previews — see the FAQ below. Switch to "Send now" for a
+                                    direct, unlimited-size transfer that never touches our server at all.</span
                                 >
                             </div>
 
-                            <!-- 1. Pick / drop files (sender, fresh visit) -->
-                            <section id="sendPickPanel" class="send-panel">
-                                <label for="sendFileInput" class="send-dropzone" id="sendDropzone">
-                                    <span class="send-dropzone-icon">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                                            <path
-                                                d="M12 16V4m0 0 4 4m-4-4-4 4"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            />
-                                            <path
-                                                d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
-                                                stroke-linecap="round"
-                                            />
-                                        </svg>
-                                    </span>
-                                    <span class="send-dropzone-title">Drop files here</span>
-                                    <span class="send-dropzone-subtitle" id="sendDropzoneSubtitle"
-                                        >or click to browse — any file type, any size</span
-                                    >
-                                    <input type="file" id="sendFileInput" multiple aria-label="Choose files to send" />
-                                </label>
-                            </section>
+                            <!-- Mode switch: link upload-and-share (default) vs. live P2P direct -->
+                            <div
+                                class="send-mode-tabs"
+                                id="sendModeTabs"
+                                role="tablist"
+                                aria-label="Choose how to send"
+                            >
+                                <button
+                                    type="button"
+                                    class="send-mode-tab is-active"
+                                    data-mode="link"
+                                    role="tab"
+                                    aria-selected="true"
+                                >
+                                    Send a link
+                                </button>
+                                <button
+                                    type="button"
+                                    class="send-mode-tab"
+                                    data-mode="now"
+                                    role="tab"
+                                    aria-selected="false"
+                                >
+                                    Send now (direct)
+                                </button>
+                            </div>
 
-                            <!-- 2. Sender: share link / QR / code, waiting for the other device -->
-                            <section id="sendSharePanel" class="send-panel" hidden>
-                                <h3 class="mt-0 mb-16">Share this with the receiver</h3>
-                                <div class="send-share-row mb-16">
+                            <!-- "Send a link" mode: upload, encrypted at rest, get a link or email it -->
+                            <div id="sendLinkModeRoot">
+                                <section id="sendLinkComposePanel" class="send-panel">
+                                    <label for="sendLinkFileInput" class="send-dropzone" id="sendLinkDropzone">
+                                        <span class="send-dropzone-icon">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path
+                                                    d="M12 16V4m0 0 4 4m-4-4-4 4"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                                <path
+                                                    d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+                                                    stroke-linecap="round"
+                                                />
+                                            </svg>
+                                        </span>
+                                        <span class="send-dropzone-title">Drop files or a folder here</span>
+                                        <span class="send-dropzone-subtitle" id="sendLinkCapNotice"
+                                            >or click to browse — up to 2 GB per transfer</span
+                                        >
+                                        <input
+                                            type="file"
+                                            id="sendLinkFileInput"
+                                            multiple
+                                            aria-label="Choose files to send as a link"
+                                        />
+                                    </label>
+                                    <button type="button" id="sendLinkFolderBtn" class="send-folder-link">
+                                        or choose a folder instead
+                                    </button>
                                     <input
-                                        id="sendShareLink"
+                                        type="file"
+                                        id="sendLinkFolderInput"
+                                        webkitdirectory
+                                        multiple
+                                        hidden
+                                        aria-label="Choose a folder to send as a link"
+                                    />
+
+                                    <ul class="send-file-list mt-16" id="sendLinkFileList" hidden></ul>
+                                    <div class="send-total-bar mt-16" id="sendLinkTotalBar" hidden>
+                                        <div class="send-total-bar-track">
+                                            <span class="send-total-bar-fill" id="sendLinkTotalBarFill"></span>
+                                        </div>
+                                        <span id="sendLinkTotalBarText"></span>
+                                    </div>
+
+                                    <div class="send-link-form" id="sendLinkForm" hidden>
+                                        <div class="send-delivery-tabs" role="tablist" aria-label="How to deliver">
+                                            <button
+                                                type="button"
+                                                class="send-mode-tab is-active"
+                                                data-delivery="link"
+                                                role="tab"
+                                                aria-selected="true"
+                                            >
+                                                Get a link
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="send-mode-tab"
+                                                data-delivery="email"
+                                                role="tab"
+                                                aria-selected="false"
+                                            >
+                                                Send by email
+                                            </button>
+                                        </div>
+
+                                        <div id="sendLinkEmailFields" hidden>
+                                            <label class="send-field-label" for="sendLinkRecipients"
+                                                >Recipient emails (up to 10, one per line or comma-separated)</label
+                                            >
+                                            <textarea
+                                                id="sendLinkRecipients"
+                                                class="form-input"
+                                                rows="2"
+                                                placeholder="friend@example.com, teammate@example.com"
+                                            ></textarea>
+
+                                            <label class="send-field-label" for="sendLinkSenderEmail">Your email</label>
+                                            <input
+                                                id="sendLinkSenderEmail"
+                                                class="form-input"
+                                                type="email"
+                                                placeholder="you@example.com"
+                                            />
+
+                                            <label class="send-field-label" for="sendLinkMessage"
+                                                >Message (optional)</label
+                                            >
+                                            <textarea
+                                                id="sendLinkMessage"
+                                                class="form-input"
+                                                rows="2"
+                                                placeholder="Here are the files…"
+                                            ></textarea>
+                                        </div>
+
+                                        <div class="send-options-row">
+                                            <label class="send-field-label" for="sendLinkExpiry"
+                                                >Expires after
+                                                <select id="sendLinkExpiry" class="form-input">
+                                                    <option value="1">1 day</option>
+                                                    <option value="3">3 days</option>
+                                                    <option value="7" selected>7 days</option>
+                                                </select>
+                                            </label>
+                                            <label class="send-field-label" for="sendLinkMaxDownloads"
+                                                >Download limit
+                                                <select id="sendLinkMaxDownloads" class="form-input">
+                                                    <option value="">No limit</option>
+                                                    <option value="1">1 download</option>
+                                                    <option value="5">5 downloads</option>
+                                                    <option value="20">20 downloads</option>
+                                                </select>
+                                            </label>
+                                        </div>
+
+                                        <p class="send-link-error" id="sendLinkFormError" hidden></p>
+
+                                        <button
+                                            type="button"
+                                            id="sendLinkSubmitBtn"
+                                            class="button button-primary button-block br-6 mt-16"
+                                        >
+                                            Create transfer
+                                        </button>
+                                    </div>
+                                </section>
+
+                                <section id="sendLinkVerifyPanel" class="send-panel" hidden>
+                                    <h3 class="mt-0 mb-16">Verify your email</h3>
+                                    <p class="mb-16" id="sendLinkVerifyText"></p>
+                                    <input
+                                        id="sendLinkVerifyCode"
                                         class="form-input"
                                         type="text"
-                                        readonly
-                                        aria-label="Shareable link"
+                                        inputmode="numeric"
+                                        maxlength="6"
+                                        placeholder="6-digit code"
+                                        aria-label="6-digit verification code"
                                     />
+                                    <p class="send-link-error" id="sendLinkVerifyError" hidden></p>
                                     <button
                                         type="button"
-                                        id="sendCopyBtn"
-                                        class="button button-primary br-6 send-copy-btn"
+                                        id="sendLinkVerifyBtn"
+                                        class="button button-primary button-block br-6 mt-16"
                                     >
-                                        Copy link
+                                        Verify and send
                                     </button>
-                                </div>
+                                </section>
 
-                                <div class="send-code">
-                                    <div class="send-code-value" id="sendCodeValue">------</div>
-                                    <div class="send-code-label">Or enter this code on the other device at /send</div>
-                                </div>
+                                <section id="sendLinkUploadPanel" class="send-panel" hidden>
+                                    <h3 class="mt-0 mb-16" id="sendLinkUploadHeadline">Uploading…</h3>
+                                    <div class="send-total-bar mb-16">
+                                        <div class="send-total-bar-track">
+                                            <span class="send-total-bar-fill" id="sendLinkUploadTotalFill"></span>
+                                        </div>
+                                        <span id="sendLinkUploadTotalText"></span>
+                                    </div>
+                                    <ul class="send-file-list" id="sendLinkUploadList"></ul>
+                                </section>
 
-                                <div class="send-qr-wrap" id="sendQrWrap">
-                                    <div class="send-qr-box" id="sendQrBox"></div>
-                                </div>
+                                <section id="sendLinkResultPanel" class="send-panel" hidden>
+                                    <h3 class="mt-0 mb-16" id="sendLinkResultHeadline">Your link is ready</h3>
+                                    <div class="send-share-row mb-16" id="sendLinkResultShareRow">
+                                        <input
+                                            id="sendLinkResultUrl"
+                                            class="form-input"
+                                            type="text"
+                                            readonly
+                                            aria-label="Shareable link"
+                                        />
+                                        <button
+                                            type="button"
+                                            id="sendLinkResultCopyBtn"
+                                            class="button button-primary br-6 send-copy-btn"
+                                        >
+                                            Copy link
+                                        </button>
+                                    </div>
+                                    <p class="send-status-line" id="sendLinkResultMeta"></p>
+                                    <p class="send-status-line">
+                                        Manage this transfer (download count, delete early):
+                                        <a href="#" id="sendLinkResultManageUrl"></a>
+                                    </p>
+                                </section>
+                            </div>
 
-                                <div class="send-status mt-32" id="sendShareStatus">
-                                    <span class="send-status-spinner" aria-hidden="true"></span>
-                                    <span id="sendShareStatusText"
-                                        >Waiting for the other device to open this link…</span
-                                    >
-                                </div>
+                            <!-- "Send now" mode: live P2P direct transfer, no size limit, nothing touches the server -->
+                            <div id="sendNowModeRoot" hidden>
+                                <section id="sendPickPanel" class="send-panel">
+                                    <label for="sendFileInput" class="send-dropzone" id="sendDropzone">
+                                        <span class="send-dropzone-icon">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path
+                                                    d="M12 16V4m0 0 4 4m-4-4-4 4"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                                <path
+                                                    d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+                                                    stroke-linecap="round"
+                                                />
+                                            </svg>
+                                        </span>
+                                        <span class="send-dropzone-title">Drop files here</span>
+                                        <span class="send-dropzone-subtitle" id="sendDropzoneSubtitle"
+                                            >or click to browse — any file type, any size, direct
+                                            browser-to-browser</span
+                                        >
+                                        <input
+                                            type="file"
+                                            id="sendFileInput"
+                                            multiple
+                                            aria-label="Choose files to send"
+                                        />
+                                    </label>
+                                </section>
 
-                                <div class="mt-16">
-                                    <button type="button" id="sendCancelBtn" class="button button-secondary br-6">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </section>
+                                <!-- Sender: share link / QR / code, waiting for the other device -->
+                                <section id="sendSharePanel" class="send-panel" hidden>
+                                    <h3 class="mt-0 mb-16">Share this with the receiver</h3>
+                                    <div class="send-share-row mb-16">
+                                        <input
+                                            id="sendShareLink"
+                                            class="form-input"
+                                            type="text"
+                                            readonly
+                                            aria-label="Shareable link"
+                                        />
+                                        <button
+                                            type="button"
+                                            id="sendCopyBtn"
+                                            class="button button-primary br-6 send-copy-btn"
+                                        >
+                                            Copy link
+                                        </button>
+                                    </div>
 
-                            <!-- 3. Receiver: connecting -->
+                                    <div class="send-code">
+                                        <div class="send-code-value" id="sendCodeValue">------</div>
+                                        <div class="send-code-label">
+                                            Or enter this code on the other device at /send
+                                        </div>
+                                    </div>
+
+                                    <div class="send-qr-wrap" id="sendQrWrap">
+                                        <div class="send-qr-box" id="sendQrBox"></div>
+                                    </div>
+
+                                    <div class="send-status mt-32" id="sendShareStatus">
+                                        <span class="send-status-spinner" aria-hidden="true"></span>
+                                        <span id="sendShareStatusText"
+                                            >Waiting for the other device to open this link…</span
+                                        >
+                                    </div>
+
+                                    <div class="mt-16">
+                                        <button type="button" id="sendCancelBtn" class="button button-secondary br-6">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                            <!-- /sendNowModeRoot -->
+
+                            <!-- 3. Receiver: connecting (live P2P, shared by both modes' receivers) -->
                             <section id="sendConnectingPanel" class="send-panel" hidden>
                                 <div class="send-status">
                                     <span class="send-status-spinner" aria-hidden="true"></span>
@@ -205,6 +436,36 @@
                                     new transfer at <a href="/send">vcpeer.com/send</a>.
                                 </p>
                             </section>
+
+                            <!-- "Send a link" download page: ?t=<transferId> -->
+                            <section id="sendLinkDownloadPanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-8" id="sendLinkDownloadHeadline">Files ready to download</h3>
+                                <p class="send-status-line mb-16" id="sendLinkDownloadMeta"></p>
+                                <p class="mb-16" id="sendLinkDownloadMessage" hidden></p>
+                                <ul class="send-link-file-list mb-16" id="sendLinkDownloadList"></ul>
+                                <button
+                                    type="button"
+                                    id="sendLinkDownloadAllBtn"
+                                    class="button button-primary button-block br-6"
+                                >
+                                    Download all (.zip)
+                                </button>
+                                <p class="send-report-line mt-16">
+                                    <button type="button" id="sendLinkReportBtn" class="send-report-link">
+                                        Report abuse
+                                    </button>
+                                </p>
+                            </section>
+
+                            <!-- "Send a link" manage page: ?m=<manageToken> -->
+                            <section id="sendLinkManagePanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-16">Manage this transfer</h3>
+                                <p class="send-status-line" id="sendLinkManageStatus"></p>
+                                <ul class="send-file-list mt-16 mb-16" id="sendLinkManageList"></ul>
+                                <button type="button" id="sendLinkManageDeleteBtn" class="button button-secondary br-6">
+                                    Delete now
+                                </button>
+                            </section>
                         </div>
                     </div>
                 </section>
@@ -213,34 +474,57 @@
                     <div class="container">
                         <div class="send-app send-faq">
                             <h2 class="mb-16">Frequently asked questions</h2>
-                            <details>
-                                <summary>How big can the files be?</summary>
+                            <details open>
+                                <summary>What's the difference between "Send a link" and "Send now"?</summary>
                                 <p>
-                                    There's no size limit enforced by VCPeer. Files go straight from one browser to the
-                                    other over a peer-to-peer connection, not through an upload server, so the practical
-                                    limit is your device's storage and both browsers staying open for the duration of
-                                    the transfer.
+                                    "Send a link" uploads your files to VCPeer first, encrypted at rest, and gives you a
+                                    link (or sends it by email) that works even when the recipient is offline — a free
+                                    WeTransfer alternative, capped at 2 GB per transfer. "Send now" is a direct,
+                                    browser-to-browser transfer with no size limit at all and nothing stored on our
+                                    server — but both devices need to be online and the tab open at the same time.
                                 </p>
                             </details>
                             <details>
-                                <summary>Is it private?</summary>
+                                <summary>How big can the files be?</summary>
                                 <p>
-                                    Yes. The file data is never uploaded to or stored on our servers — it streams
-                                    directly between the sender's and receiver's browsers over an encrypted WebRTC data
-                                    channel. Our server only helps the two browsers find each other (the same signaling
-                                    VCPeer already uses for video calls).
+                                    "Send a link": up to 2 GB per transfer (shown honestly above the upload box; this is
+                                    a server limit, configurable per deployment). "Send now": no size limit — files go
+                                    straight from one browser to the other over a peer-to-peer connection, not through
+                                    an upload server, so the practical limit is your device's storage.
+                                </p>
+                            </details>
+                            <details>
+                                <summary>Is "Send a link" end-to-end encrypted?</summary>
+                                <p>
+                                    No — be honest about this one. Files uploaded via "Send a link" are encrypted at
+                                    rest on our server (so a leaked disk or bucket isn't readable), which is what lets
+                                    us generate zip downloads and image/video/PDF previews. The server itself can
+                                    decrypt them. "Send now" is the stronger privacy option: file data streams directly
+                                    between the sender's and receiver's browsers over an encrypted WebRTC data channel
+                                    and is never uploaded anywhere.
+                                </p>
+                            </details>
+                            <details>
+                                <summary>How does an expiring link work?</summary>
+                                <p>
+                                    Every "Send a link" transfer expires after 1, 3, or 7 days (your choice, 7 by
+                                    default) or after an optional download-count limit — whichever comes first. A
+                                    background cleanup job deletes the encrypted files once a transfer expires.
                                 </p>
                             </details>
                             <details>
                                 <summary>Does the receiver need an account?</summary>
-                                <p>No. Opening the link or entering the 6-digit code is all that's required.</p>
+                                <p>
+                                    No. Opening the link, or opening the email it was sent to, is all that's required.
+                                </p>
                             </details>
                             <details>
-                                <summary>What happens if I close the tab?</summary>
+                                <summary>What happens if I close the tab during "Send now"?</summary>
                                 <p>
-                                    Both the sender's and receiver's tabs need to stay open for the transfer to complete
-                                    — there's no server in the middle to resume from. If the sender closes their tab,
-                                    the link expires.
+                                    Both the sender's and receiver's tabs need to stay open for a "Send now" transfer to
+                                    complete — there's no server in the middle to resume from. If the sender closes
+                                    their tab, the link expires. "Send a link" doesn't have this limitation: once
+                                    uploaded, the recipient can download it any time until it expires.
                                 </p>
                             </details>
                         </div>

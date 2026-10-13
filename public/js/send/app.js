@@ -15,6 +15,10 @@ import { SendSession } from './sender.js';
 import { ReceiveSession } from './receiver.js';
 import { generateRoomToken, isValidRoomToken, buildShareUrl } from './room-token.js';
 import { bytesToSize, formatSpeed, formatEta, clampPercent, estimateThroughput } from './format.js';
+import { renderFileRow, updateFileRowProgress, markFileRowComplete } from './file-list-ui.js';
+import { initLinkMode } from './link-sender.js';
+import { renderDownloadPage } from './link-download.js';
+import { renderManagePage } from './link-manage.js';
 
 const API_BASE = '/api/v1';
 
@@ -46,78 +50,6 @@ function randomPeerName(prefix) {
     return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/**
- * Renders a file-list `<li>` matching the .send-file-* CSS, shared across the
- * manifest/transfer/complete panels.
- * @param {{ id: string, name: string, size: number }} file
- * @returns {HTMLLIElement}
- */
-function renderFileRow(file) {
-    const li = document.createElement('li');
-    li.className = 'send-file-row';
-    li.dataset.fileId = file.id;
-    li.innerHTML = `
-        <span class="send-file-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z" stroke-linejoin="round"/><path d="M15 2v5h5" stroke-linejoin="round"/></svg>
-        </span>
-        <span class="send-file-meta">
-            <span class="send-file-name">${escapeHtml(file.name)}</span>
-            <span class="send-file-size">${bytesToSize(file.size)}</span>
-            <span class="send-file-progress-track"><span class="send-file-progress-bar"></span></span>
-            <span class="send-file-stat"></span>
-        </span>
-    `;
-    return li;
-}
-
-function escapeHtml(str) {
-    return String(str).replace(
-        /[&<>"']/g,
-        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
-    );
-}
-
-function updateFileRowProgress(list, fileId, sentOrReceivedBytes, totalBytes, samples) {
-    const row = list.querySelector(`[data-file-id="${CSS.escape(fileId)}"]`);
-    if (!row) return;
-    const pct = clampPercent((sentOrReceivedBytes / Math.max(totalBytes, 1)) * 100);
-    row.querySelector('.send-file-progress-bar').style.width = `${pct}%`;
-
-    const now = Date.now();
-    samples.push({ bytes: sentOrReceivedBytes, atMs: now });
-    if (samples.length > 20) samples.shift();
-    const throughput = estimateThroughput(samples);
-    const remaining = totalBytes - sentOrReceivedBytes;
-
-    row.querySelector('.send-file-stat').textContent =
-        `${pct.toFixed(0)}% · ${formatSpeed(throughput)} · ${formatEta(remaining, throughput)} left`;
-}
-
-function markFileRowComplete(list, fileId, { verified, blob, name, fallbackLabel = 'Received' } = {}) {
-    const row = list.querySelector(`[data-file-id="${CSS.escape(fileId)}"]`);
-    if (!row) return;
-    row.querySelector('.send-file-progress-bar').style.width = '100%';
-    const statEl = row.querySelector('.send-file-stat');
-
-    if (verified === true) {
-        statEl.innerHTML = '<span class="send-file-badge send-file-badge-verified">Verified</span>';
-    } else if (verified === false) {
-        statEl.innerHTML = '<span class="send-file-badge send-file-badge-unverified">Hash mismatch</span>';
-    } else {
-        statEl.textContent = fallbackLabel;
-    }
-
-    if (blob) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = name;
-        link.className = 'button button-secondary br-6 send-file-save-btn mt-8';
-        link.textContent = `Save ${name}`;
-        row.appendChild(link);
-    }
-}
-
 /* -------------------------------------------------------------------------- */
 /* Sender flow                                                                 */
 /* -------------------------------------------------------------------------- */
@@ -130,6 +62,7 @@ async function startSenderFlow(files) {
     renderQrCode(shareUrl);
     requestSendCode(token);
 
+    el('sendModeTabs').hidden = true;
     showPanel('share');
 
     const signaling = new SignalingClient();
@@ -390,20 +323,74 @@ function wireDropzone() {
     });
 }
 
+const BANNER_TEXT_BY_MODE = {
+    link: '"Send a link" uploads are encrypted at rest on our server (not end-to-end) so we can build zip downloads and previews — see the FAQ below. Switch to "Send now" for a direct, unlimited-size transfer that never touches our server at all.',
+    now: '"Send now" streams directly between browsers over an encrypted WebRTC connection — nothing is ever uploaded to or stored on our server, and there is no size limit. Both devices need to stay online and the tab open until it finishes.',
+};
+
+/** Top-level mode tabs ("Send a link" default / "Send now (direct)"), only relevant on a fresh visit. */
+function wireModeTabs() {
+    const tabs = el('sendModeTabs');
+    const linkRoot = el('sendLinkModeRoot');
+    const nowRoot = el('sendNowModeRoot');
+
+    tabs.querySelectorAll('.send-mode-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const mode = btn.dataset.mode;
+            tabs.querySelectorAll('.send-mode-tab').forEach((b) => {
+                b.classList.toggle('is-active', b === btn);
+                b.setAttribute('aria-selected', String(b === btn));
+            });
+            linkRoot.hidden = mode !== 'link';
+            nowRoot.hidden = mode !== 'now';
+            el('sendBannerText').textContent = BANNER_TEXT_BY_MODE[mode] || BANNER_TEXT_BY_MODE.link;
+        });
+    });
+}
+
+function hideAllTopLevelChrome() {
+    el('sendModeTabs').hidden = true;
+    el('sendLinkModeRoot').hidden = true;
+    el('sendNowModeRoot').hidden = true;
+}
+
 async function boot() {
     wireDropzone();
+    wireModeTabs();
+    initLinkMode();
 
-    const token = await resolveReceiverToken();
-    if (token) {
-        startReceiverFlow(token);
+    const params = new URLSearchParams(window.location.search);
+
+    // "Send a link" download page.
+    const transferId = params.get('t');
+    if (transferId) {
+        hideAllTopLevelChrome();
+        await renderDownloadPage(transferId);
         return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('r') || params.get('c')) {
-        showError('This link looks invalid. Ask the sender for a new one at vcpeer.com/send.');
+    // "Send a link" manage page (sender's private link).
+    const manageToken = params.get('m');
+    if (manageToken) {
+        hideAllTopLevelChrome();
+        await renderManagePage(manageToken);
+        return;
     }
-    // else: stay on the pick/drop panel (default state, already visible)
+
+    // Live P2P ("Send now") receiver — opened via ?r=<token> or ?c=<code>.
+    const token = await resolveReceiverToken();
+    if (token) {
+        hideAllTopLevelChrome();
+        startReceiverFlow(token);
+        return;
+    }
+    if (params.get('r') || params.get('c')) {
+        hideAllTopLevelChrome();
+        showError('This link looks invalid. Ask the sender for a new one at vcpeer.com/send.');
+        return;
+    }
+
+    // Fresh visit: show the mode tabs, "Send a link" selected by default.
 }
 
 if (document.readyState === 'loading') {
