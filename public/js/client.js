@@ -2227,7 +2227,7 @@ async function whoAreYou() {
         allowOutsideClick: false,
         allowEscapeKey: false,
         background: swBg,
-        title: brand.app?.name || 'MiroTalk P2P',
+        title: brand.app?.name || 'VCPeer',
         position: 'center',
         input: 'text',
         inputLabel: 'Display name',
@@ -9977,7 +9977,7 @@ function shareRoomByEmail() {
             }
             const roomPassword = isRoomLocked && thisRoomPassword ? 'Password: ' + thisRoomPassword + newLine : '';
             const email = '';
-            const emailSubject = `Please join our MiroTalk P2P Video Chat Meeting`;
+            const emailSubject = `Please join our VCPeer Video Chat Meeting`;
             const emailBody = `The meeting is scheduled at: ${newLine} DateTime: ${selectedDateTime} ${newLine}${roomPassword}Click to join: ${roomURL} ${newLine}`;
             document.location = 'mailto:' + email + '?subject=' + emailSubject + '&body=' + emailBody;
         },
@@ -18505,7 +18505,7 @@ function leaveFeedback() {
         imageUrl: images.feedback,
         position: 'center',
         title: 'Leave the meeting?',
-        text: 'You can optionally rate your MiroTalk experience before you go.',
+        text: 'You can optionally rate your VCPeer experience before you go.',
         confirmButtonText: 'Leave without rating',
         denyButtonText: 'Leave & rate',
         cancelButtonText: 'Stay in meeting',

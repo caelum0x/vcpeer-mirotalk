@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const joinUrl = buildJoinUrl();
                 await navigator.share({
-                    title: document.title || 'MiroTalk Room',
+                    title: document.title || 'VCPeer Room',
                     url: joinUrl.toString(),
                 });
             } catch (err) {

@@ -205,7 +205,7 @@ function showJoinRoomForm() {
             }
             const shareUrl = window.location.origin + '/join/' + encodeURIComponent(room);
             if (navigator.share) {
-                navigator.share({ title: 'MiroTalk Room', url: shareUrl }).catch(() => {});
+                navigator.share({ title: 'VCPeer Room', url: shareUrl }).catch(() => {});
             } else {
                 navigator.clipboard
                     .writeText(shareUrl)
