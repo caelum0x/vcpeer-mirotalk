@@ -49,7 +49,7 @@ describe('test-sendRoute', function () {
         const response = await fetch(`${BASE}/send`);
         response.status.should.equal(200);
         const body = await response.text();
-        body.should.containEql('Send large files free, no upload, no size limit');
+        body.should.containEql('Send large files free. A WeTransfer alternative.');
     });
 
     it('serves the send app.js module with a JS content type', async () => {

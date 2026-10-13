@@ -108,6 +108,9 @@ describe('test-sendE2E', function () {
 
         try {
             await senderPage.goto(`${BASE}/send`);
+            // "Send a link" (upload-and-share) is the default mode; the live P2P
+            // flow this test exercises lives under the "Send now (direct)" tab.
+            await senderPage.click('.send-mode-tab[data-mode="now"]');
             await senderPage.setInputFiles('#sendFileInput', sourceFilePath);
 
             await senderPage.waitForSelector('#sendSharePanel:not([hidden])', { timeout: 15000 });
