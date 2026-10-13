@@ -40,4 +40,17 @@ const createRoomTokenLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
-module.exports = { loginLimiter, createRoomTokenLimiter };
+// VCPeer Send: minting a 6-digit code is cheap but should still be capped per IP
+// (it's an unauthenticated POST) — same shape as createRoomTokenLimiter.
+const sendCodeLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        message: 'Too many requests. Please try again in a minute.',
+    },
+    keyGenerator: getClientIP,
+});
+
+module.exports = { loginLimiter, createRoomTokenLimiter, sendCodeLimiter };

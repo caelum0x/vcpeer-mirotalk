@@ -1,0 +1,4 @@
+{
+    "//": "Scopes this directory (and only this directory) to ES modules, independent of the CommonJS root package.json. Browsers don't read this file — they rely on <script type=\"module\">. Node (used by the test suite) does read it.",
+    "type": "module"
+}

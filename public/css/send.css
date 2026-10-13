@@ -1,0 +1,338 @@
+/*
+ * VCPeer Send — page-specific styles.
+ * Built on top of _tokens.css + landing.css (buttons, form-input, layout
+ * primitives are reused from there). Everything below is new for /send.
+ */
+
+.send-app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-7);
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.send-panel {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--ds-radius-lg);
+    padding: var(--ds-space-7);
+}
+
+.send-panel[hidden] {
+    display: none;
+}
+
+/* Dropzone */
+
+.send-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ds-space-3);
+    width: 100%;
+    padding: var(--ds-space-9) var(--ds-space-5);
+    border: 1px dashed rgba(255, 255, 255, 0.28);
+    border-radius: var(--ds-radius-lg);
+    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 55%), rgba(255, 255, 255, 0.03);
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition:
+        border-color var(--ds-duration-base) var(--ds-ease-out),
+        background var(--ds-duration-base) var(--ds-ease-out);
+}
+
+.send-dropzone:hover,
+.send-dropzone.is-dragover {
+    border-color: var(--ds-brand-500);
+    background: radial-gradient(circle at top, rgba(70, 120, 249, 0.14), transparent 55%), rgba(255, 255, 255, 0.04);
+}
+
+.send-dropzone-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--ds-radius-md);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.send-dropzone-icon svg {
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+}
+
+.send-dropzone-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.send-dropzone-subtitle {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.92rem;
+}
+
+.send-dropzone input[type='file'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+/* Privacy banner */
+
+.send-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-4);
+    border-radius: var(--ds-radius-md);
+    background: rgba(70, 120, 249, 0.1);
+    border: 1px solid rgba(70, 120, 249, 0.25);
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.send-banner svg {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    stroke: var(--ds-brand-300);
+    fill: none;
+    stroke-width: 1.6;
+}
+
+/* Share panel: link, QR, code */
+
+.send-share-row {
+    display: flex;
+    gap: var(--ds-space-2);
+    align-items: stretch;
+}
+
+.send-share-row .form-input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--ds-font-mono);
+    font-size: 0.85rem;
+}
+
+.send-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    white-space: nowrap;
+}
+
+.send-qr-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ds-space-2);
+    margin-top: var(--ds-space-5);
+}
+
+.send-qr-wrap[hidden] {
+    display: none;
+}
+
+.send-qr-box {
+    padding: var(--ds-space-3);
+    background: #fff;
+    border-radius: var(--ds-radius-md);
+}
+
+.send-code {
+    text-align: center;
+    margin-top: var(--ds-space-5);
+}
+
+.send-code-value {
+    font-family: var(--ds-font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    padding-left: 0.3em; /* balance the trailing letter-spacing so the digits look centered */
+}
+
+.send-code-label {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.85rem;
+}
+
+/* Manifest / file list */
+
+.send-file-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+}
+
+.send-file-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--ds-radius-md);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.send-file-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--ds-radius-sm);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.send-file-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+}
+
+.send-file-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.send-file-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.send-file-size {
+    display: block;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+
+.send-file-progress-track {
+    margin-top: var(--ds-space-2);
+    height: 6px;
+    border-radius: var(--ds-radius-full);
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.send-file-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--ds-brand-500);
+    border-radius: var(--ds-radius-full);
+    transition: width var(--ds-duration-fast) linear;
+}
+
+.send-file-stat {
+    display: block;
+    margin-top: 2px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.78rem;
+}
+
+.send-file-badge {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--ds-radius-full);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.send-file-badge-verified {
+    background: color-mix(in srgb, var(--ds-success) 20%, transparent);
+    color: var(--ds-success);
+}
+
+.send-file-badge-unverified {
+    background: color-mix(in srgb, var(--ds-warning) 20%, transparent);
+    color: var(--ds-warning);
+}
+
+.send-file-save-btn {
+    flex: 0 0 auto;
+}
+
+/* Status line */
+
+.send-status {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.9rem;
+}
+
+.send-status-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: var(--ds-brand-500);
+    animation: send-spin 0.8s linear infinite;
+    flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .send-file-progress-bar {
+        transition: none;
+    }
+    .send-status-spinner {
+        animation: none;
+    }
+}
+
+@keyframes send-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* FAQ */
+
+.send-faq details {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--ds-space-4) 0;
+}
+
+.send-faq summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.send-faq p {
+    margin: var(--ds-space-2) 0 0;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.92rem;
+}
+
+@media (max-width: 640px) {
+    .send-panel {
+        padding: var(--ds-space-5);
+    }
+    .send-share-row {
+        flex-direction: column;
+    }
+}

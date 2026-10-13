@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" class="no-js">
+    <head>
+        <!-- Title and Icon -->
+
+        <title>Send large files free, no upload, no size limit | VCPeer Send</title>
+        <link rel="shortcut icon" href="../images/logo.svg" />
+        <link rel="apple-touch-icon" href="../images/logo.svg" />
+
+        <!-- Meta Information -->
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="darkreader-lock" />
+
+        <meta
+            name="description"
+            content="Send large files free with no upload and no size limit. Drop a file, share a link or QR code, and it streams peer-to-peer straight to the other browser. We never see or store your files."
+        />
+        <link rel="canonical" href="https://vcpeer.com/send" />
+
+        <!-- https://ogp.me -->
+
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="VCPeer" />
+        <meta property="og:title" content="Send large files free, no upload, no size limit" />
+        <meta
+            property="og:description"
+            content="Drop a file, share a link or QR code, and it streams peer-to-peer straight to the other browser. No account, no upload, no size limit."
+        />
+        <meta property="og:image" content="https://vcpeer.com/images/preview.png" />
+        <meta property="og:url" content="https://vcpeer.com/send" />
+
+        <!-- StyleSheet -->
+
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" href="../css/landing.css" />
+        <link rel="stylesheet" href="../css/newcall.css" />
+        <link rel="stylesheet" href="../css/send.css" />
+
+        <!-- JavaScripts -->
+
+        <script async src="../js/stats.js"></script>
+        <script defer src="../js/insights.js"></script>
+
+        <!-- socket.io client, served by this same signaling server (app/src/server.js) -->
+        <script defer src="/socket.io/socket.io.js"></script>
+
+        <!-- QR code rendering, already used on /customizeRoom -->
+        <script defer src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    </head>
+    <body class="has-animations">
+        <div class="body-wrap">
+            <header class="site-header reveal-from-top">
+                <div class="container">
+                    <div class="site-header-inner">
+                        <div class="brand">
+                            <div class="m-0">
+                                <a href="/">
+                                    <img src="../images/logo.svg" alt="VCPeer" width="32" height="32" />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="site-content mt-48">
+                <section class="hero section">
+                    <div class="container">
+                        <div class="hero-inner section-inner center-content">
+                            <h1 class="mt-0 mb-16 reveal-from-bottom" data-reveal-delay="150" id="sendHeadline">
+                                Send large files. No upload, no size limit.
+                            </h1>
+                            <p class="mt-0 mb-32 reveal-from-bottom" data-reveal-delay="300" id="sendSubhead">
+                                Drop a file, share the link or QR code, and it streams directly to the other browser
+                                over a peer-to-peer connection. Nothing touches our servers.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="container">
+                        <div class="send-app">
+                            <div class="send-banner">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path
+                                        d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                                <span id="sendBannerText"
+                                    >Keep this tab open until the transfer finishes. Files go directly between browsers
+                                    — we never see them.</span
+                                >
+                            </div>
+
+                            <!-- 1. Pick / drop files (sender, fresh visit) -->
+                            <section id="sendPickPanel" class="send-panel">
+                                <label for="sendFileInput" class="send-dropzone" id="sendDropzone">
+                                    <span class="send-dropzone-icon">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path
+                                                d="M12 16V4m0 0 4 4m-4-4-4 4"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                            <path
+                                                d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+                                                stroke-linecap="round"
+                                            />
+                                        </svg>
+                                    </span>
+                                    <span class="send-dropzone-title">Drop files here</span>
+                                    <span class="send-dropzone-subtitle" id="sendDropzoneSubtitle"
+                                        >or click to browse — any file type, any size</span
+                                    >
+                                    <input type="file" id="sendFileInput" multiple aria-label="Choose files to send" />
+                                </label>
+                            </section>
+
+                            <!-- 2. Sender: share link / QR / code, waiting for the other device -->
+                            <section id="sendSharePanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-16">Share this with the receiver</h3>
+                                <div class="send-share-row mb-16">
+                                    <input
+                                        id="sendShareLink"
+                                        class="form-input"
+                                        type="text"
+                                        readonly
+                                        aria-label="Shareable link"
+                                    />
+                                    <button
+                                        type="button"
+                                        id="sendCopyBtn"
+                                        class="button button-primary br-6 send-copy-btn"
+                                    >
+                                        Copy link
+                                    </button>
+                                </div>
+
+                                <div class="send-code">
+                                    <div class="send-code-value" id="sendCodeValue">------</div>
+                                    <div class="send-code-label">Or enter this code on the other device at /send</div>
+                                </div>
+
+                                <div class="send-qr-wrap" id="sendQrWrap">
+                                    <div class="send-qr-box" id="sendQrBox"></div>
+                                </div>
+
+                                <div class="send-status mt-32" id="sendShareStatus">
+                                    <span class="send-status-spinner" aria-hidden="true"></span>
+                                    <span id="sendShareStatusText"
+                                        >Waiting for the other device to open this link…</span
+                                    >
+                                </div>
+
+                                <div class="mt-16">
+                                    <button type="button" id="sendCancelBtn" class="button button-secondary br-6">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </section>
+
+                            <!-- 3. Receiver: connecting -->
+                            <section id="sendConnectingPanel" class="send-panel" hidden>
+                                <div class="send-status">
+                                    <span class="send-status-spinner" aria-hidden="true"></span>
+                                    <span id="sendConnectingText">Connecting to the sender…</span>
+                                </div>
+                            </section>
+
+                            <!-- 4. Receiver: manifest + single Save action -->
+                            <section id="sendManifestPanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-16" id="sendManifestHeadline">Incoming files</h3>
+                                <ul class="send-file-list mb-32" id="sendManifestList"></ul>
+                                <button
+                                    type="button"
+                                    id="sendAcceptBtn"
+                                    class="button button-primary button-block br-6"
+                                >
+                                    Save
+                                </button>
+                            </section>
+
+                            <!-- 5. Shared: active transfer progress -->
+                            <section id="sendTransferPanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-16" id="sendTransferHeadline">Sending…</h3>
+                                <ul class="send-file-list" id="sendTransferList"></ul>
+                            </section>
+
+                            <!-- 6. Shared: complete -->
+                            <section id="sendCompletePanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-16" id="sendCompleteHeadline">Done</h3>
+                                <ul class="send-file-list" id="sendCompleteList"></ul>
+                            </section>
+
+                            <!-- 7. Error / expired -->
+                            <section id="sendErrorPanel" class="send-panel" hidden>
+                                <h3 class="mt-0 mb-16">This link has expired</h3>
+                                <p id="sendErrorText">
+                                    The sender closed their tab, or this link is no longer valid. Ask them to start a
+                                    new transfer at <a href="/send">vcpeer.com/send</a>.
+                                </p>
+                            </section>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="container">
+                        <div class="send-app send-faq">
+                            <h2 class="mb-16">Frequently asked questions</h2>
+                            <details>
+                                <summary>How big can the files be?</summary>
+                                <p>
+                                    There's no size limit enforced by VCPeer. Files go straight from one browser to the
+                                    other over a peer-to-peer connection, not through an upload server, so the practical
+                                    limit is your device's storage and both browsers staying open for the duration of
+                                    the transfer.
+                                </p>
+                            </details>
+                            <details>
+                                <summary>Is it private?</summary>
+                                <p>
+                                    Yes. The file data is never uploaded to or stored on our servers — it streams
+                                    directly between the sender's and receiver's browsers over an encrypted WebRTC data
+                                    channel. Our server only helps the two browsers find each other (the same signaling
+                                    VCPeer already uses for video calls).
+                                </p>
+                            </details>
+                            <details>
+                                <summary>Does the receiver need an account?</summary>
+                                <p>No. Opening the link or entering the 6-digit code is all that's required.</p>
+                            </details>
+                            <details>
+                                <summary>What happens if I close the tab?</summary>
+                                <p>
+                                    Both the sender's and receiver's tabs need to stay open for the transfer to complete
+                                    — there's no server in the middle to resume from. If the sender closes their tab,
+                                    the link expires.
+                                </p>
+                            </details>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer id="footer" class="site-footer center-content-mobile">
+                <div class="container">
+                    <div class="site-footer-inner">
+                        <div class="footer-top space-between text-xxs">
+                            <div class="brand">
+                                <a href="/"><img src="../images/logo.svg" alt="VCPeer" width="32" height="32" /></a>
+                            </div>
+                            <div class="footer-social">
+                                <ul class="list-reset">
+                                    <li class="footer-social-icon">
+                                        <a
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                            aria-label="VCPeer source code on GitHub"
+                                            title="VCPeer source code (AGPL-3.0)"
+                                        >
+                                            <svg
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 16 16"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                            >
+                                                <title>GitHub</title>
+                                                <path
+                                                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+                                                />
+                                            </svg>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="footer-bottom space-between text-xxs invert-order-desktop">
+                            <nav class="footer-nav">
+                                <ul class="list-reset">
+                                    <li>
+                                        <a
+                                            href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Source code</a
+                                        >
+                                    </li>
+                                    <li>
+                                        <a href="/privacy">Privacy</a>
+                                    </li>
+                                    <li>
+                                        <a href="mailto:hello@vcpeer.com">Contact</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <div class="footer-copyright">&copy; 2026 VCPeer</div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <script defer src="../js/brand.js"></script>
+        <script defer src="../js/landing.js"></script>
+        <script type="module" src="../js/send/app.js"></script>
+    </body>
+</html>

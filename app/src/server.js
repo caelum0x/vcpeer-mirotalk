@@ -71,6 +71,7 @@ const { getJwtKeys } = require('./jwtSecret');
 const MattermostController = require('./mattermost');
 const Validate = require('./validate');
 const RoomPassword = require('./roomPassword');
+const SendCode = require('./sendCode');
 const HtmlInjector = require('./htmlInjector');
 const Host = require('./host');
 const Logs = require('./logs');
@@ -85,7 +86,7 @@ const nodemailer = require('./lib/nodemailer');
 
 const packageJson = require('../../package.json');
 
-const { loginLimiter, createRoomTokenLimiter } = require('./middleware/rateLimiter');
+const { loginLimiter, createRoomTokenLimiter, sendCodeLimiter } = require('./middleware/rateLimiter');
 
 const port = config.server.port;
 const host = config.server.host;
@@ -451,6 +452,8 @@ const views = {
     customizeRoom: path.join(__dirname, '../../', 'public/views/customizeRoom.html'),
     stunTurn: path.join(__dirname, '../../', 'public/views/testStunTurn.html'),
     waitingRoom: path.join(__dirname, '../../', 'public/views/waitingRoom.html'),
+    // VCPeer Send — P2P large-file transfer, see plans/vcpeer.md "Shipped 2026-10-14: VCPeer Send"
+    send: path.join(__dirname, '../../', 'public/views/send.html'),
     // SEO landing pages (static, matching researched query clusters, see
     // plans/vcpeer-build-2026-10-14.md "SEO pages" section)
     seoFreeVideoCall: path.join(__dirname, '../../', 'public/views/seo/free-video-call.html'),
@@ -742,6 +745,35 @@ app.get('/group-video-call-free', (req, res) => {
 });
 app.get('/screen-share-no-signup', (req, res) => {
     res.sendFile(views.seoScreenShare);
+});
+
+// VCPeer Send — P2P large-file transfer page. Reuses the existing signaling
+// (join / addPeer / relaySDP / relayICE) for the WebRTC handshake; see
+// public/js/send/ and plans/vcpeer.md "Shipped 2026-10-14: VCPeer Send".
+app.get('/send', (req, res) => {
+    res.sendFile(views.send);
+});
+
+// Mint a 6-digit code that aliases a VCPeer Send room token, so a sender can
+// read it out loud for phone-to-laptop transfers instead of sharing the link.
+// No file data or metadata passes through this endpoint — just the room token.
+app.post(`${apiBasePath}/send/code`, sendCodeLimiter, (req, res) => {
+    const { channel } = checkXSS(req.body || {});
+    if (!Validate.isValidRoomName(channel) || !channel.startsWith('send-')) {
+        return res.status(400).json({ message: 'Invalid channel' });
+    }
+    const code = SendCode.createCode(channel);
+    if (!code) return res.status(503).json({ message: 'Too many active codes, please retry shortly' });
+    res.json({ code, expiresInMs: SendCode.TTL_MS });
+});
+
+// Resolve a 6-digit code back to its room token.
+app.get(`${apiBasePath}/send/code/:code`, (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ message: 'Invalid code' });
+    const channel = SendCode.resolveCode(code);
+    if (!channel) return res.status(404).json({ message: 'Code not found or expired' });
+    res.json({ channel });
 });
 
 // test Stun and Turn connections
@@ -3128,6 +3160,7 @@ io.sockets.on('connect', async (socket) => {
                 delete videoTextAnnotations[channel]; // Clean up persistent screen annotation state
                 delete videoDrawingAnnotations[channel]; // Clean up persistent screen drawing state
                 delete videoDrawingPermissions[channel];
+                SendCode.release(channel); // VCPeer Send: room emptied out, retire its 6-digit code (if any)
             }
         } catch (err) {
             log.error('Remove Peer', toJson(err));
