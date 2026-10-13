@@ -1,7 +1,7 @@
 {
-    "name": "mirotalk",
-    "version": "2.1.49",
-    "description": "A free WebRTC browser-based video call",
+    "name": "vcpeer",
+    "version": "1.0.0",
+    "description": "VCPeer — free, peer-to-peer browser video calls. No signup, no download, no time limit.",
     "main": "server.js",
     "scripts": {
         "prestart": "test -f app/src/config.js || cp app/src/config.template.js app/src/config.js",
@@ -25,7 +25,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/miroslavpejic85/mirotalk"
+        "url": "git+https://github.com/caelum0x/vcpeer-mirotalk"
     },
     "keywords": [
         "webrtc",
@@ -34,16 +34,16 @@
         "nodejs",
         "video",
         "audio",
-        "openai",
-        "oidc",
-        "chatgpt",
+        "video-call",
+        "free-video-call",
+        "no-signup",
         "client",
         "server",
         "streaming"
     ],
-    "author": "Miroslav Pejic",
+    "author": "VCPeer",
     "license": "AGPL-3.0",
-    "homepage": "https://github.com/miroslavpejic85/mirotalk",
+    "homepage": "https://vcpeer.com",
     "dependencies": {
         "@mattermost/client": "11.9.0",
         "@ngrok/ngrok": "1.7.0",

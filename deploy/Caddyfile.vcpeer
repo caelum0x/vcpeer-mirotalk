@@ -1,0 +1,22 @@
+# VCPeer Caddy site block.
+#
+# This is NOT a full Caddyfile — it's the site block to MERGE BY HAND into the
+# box's existing Caddyfile at deploy time (the box currently serves a static
+# "closed" page via Caddy; do not overwrite the whole file, just append/replace
+# this one site block). Leave the box's global TLS/ACME options untouched.
+#
+# 301 redirects preserve the old vcpeer.com (VC-investor product) visitors
+# from hitting 404s — see plans/vcpeer-build-2026-10-14.md "301 redirect map".
+# This intentionally does NOT preserve topical SEO equity (fundraising-research
+# intent != video-call intent); it only avoids dead links for legacy traffic.
+
+vcpeer.com, www.vcpeer.com {
+    redir /vcs/* / permanent
+    redir /fresh-funding / permanent
+    redir /tools / permanent
+    redir /pricing / permanent
+    redir /support / permanent
+
+    reverse_proxy 127.0.0.1:3000
+    encode gzip
+}

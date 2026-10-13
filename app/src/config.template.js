@@ -310,10 +310,16 @@ module.exports = {
     // ==========================================
     // Stats / Analytics
     // ==========================================
+    // Disabled by default: the upstream default silently sends every room/call
+    // event to the upstream author's own stats.mirotalk.com instance under a
+    // shared public ID, which contradicts VCPeer's "we don't collect or share
+    // personal information" privacy claim. VCPeer's own analytics (room_created
+    // event, rooms-per-day metric) go through Railyard Insights instead — see
+    // public/js/insights.js and the room_created hook in public/js/client.js.
     stats: {
-        enabled: process.env.STATS_ENABLED ? getEnvBoolean(process.env.STATS_ENABLED) : true,
-        src: process.env.STATS_SCR || 'https://stats.mirotalk.com/script.js',
-        id: process.env.STATS_ID || 'c7615aa7-ceec-464a-baba-54cb605d7261',
+        enabled: process.env.STATS_ENABLED ? getEnvBoolean(process.env.STATS_ENABLED) : false,
+        src: process.env.STATS_SCR || '',
+        id: process.env.STATS_ID || '',
     },
 
     // ==========================================
@@ -339,10 +345,10 @@ module.exports = {
         app: {
             language: 'en', // https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
             translationMode: 'google', // In-room UI: auto (native file else Google) | native (human files only, no Google) | google (default, always Google)
-            name: 'MiroTalk',
-            title: '<h1>MiroTalk</h1>Free browser based Real-time video calls.<br />Simple, Secure, Fast.',
+            name: 'VCPeer',
+            title: '<h1>VCPeer</h1>Free browser video calls. No signup, no download, no time limit.',
             description:
-                'Start your next video call with a single click. No download, plug-in, or login is required. Just get straight to talking, messaging, and sharing your screen.',
+                'Start a video call in one click. No account, no download, no time limit. Calls are peer-to-peer and never recorded by us.',
             joinDescription: 'Pick a room name.<br />How about this one?',
             joinButtonLabel: 'JOIN ROOM',
             customizeRoomButtonLabel: 'CUSTOMIZE ROOM',
@@ -350,32 +356,32 @@ module.exports = {
         },
         og: {
             type: 'app-webrtc',
-            siteName: 'MiroTalk',
-            title: 'MiroTalk P2P - Open Source WebRTC Video Calls & Meetings',
+            siteName: 'VCPeer',
+            title: 'VCPeer — Free P2P Video Calls, No Signup, No Time Limit',
             description:
-                'MiroTalk P2P is an open-source self-hosted WebRTC video calling and meeting platform. Create fast peer-to-peer video calls with screen sharing, chat, whiteboard and collaboration directly in the browser.',
-            image: 'https://p2p.mirotalk.com/images/preview.png',
-            url: 'https://p2p.mirotalk.com',
+                'Free, peer-to-peer video calls in your browser. No account, no download, no time limit. Screen share, chat, and whiteboard built in.',
+            image: 'https://vcpeer.com/images/preview.png',
+            url: 'https://vcpeer.com',
         },
         site: {
             shortcutIcon: '../images/logo.svg',
             appleTouchIcon: '../images/logo.svg',
-            landingTitle: 'MiroTalk P2P - Open Source WebRTC Video Calls & Meetings',
-            newCallTitle: 'MiroTalk a Free Secure Video Calls, Chat & Screen Sharing.',
+            landingTitle: 'VCPeer — Free P2P Video Calls, No Signup, No Time Limit',
+            newCallTitle: 'VCPeer a Free Secure Video Calls, Chat & Screen Sharing.',
             newCallRoomTitle: 'Pick name. <br />Share URL. <br />Start conference.',
             newCallRoomDescription:
                 "Each room has its disposable URL. Just pick a room name and share your custom URL. It's that easy.",
-            loginTitle: 'MiroTalk - Host Protected login required.',
+            loginTitle: 'VCPeer - Host Protected login required.',
             loginHeading: 'Welcome back',
             loginDescription: 'Enter your credentials to continue.',
             loginButtonLabel: 'Login',
             joinRoomTitle: 'Pick name.<br />Share URL.<br />Start conference.',
             joinRoomButtonLabel: 'JOIN ROOM',
-            clientTitle: 'MiroTalk WebRTC Video call, Chat Room & Screen Sharing.',
-            privacyPolicyTitle: 'MiroTalk - privacy and policy.',
+            clientTitle: 'VCPeer WebRTC Video call, Chat Room & Screen Sharing.',
+            privacyPolicyTitle: 'VCPeer - privacy and policy.',
             stunTurnTitle: 'Test Stun/Turn Servers.',
-            notFoundTitle: 'MiroTalk - 404 Page not found.',
-            waitingRoomTitle: 'MiroTalk - Waiting for host to start the meeting',
+            notFoundTitle: 'VCPeer - 404 Page not found.',
+            waitingRoomTitle: 'VCPeer - Waiting for host to start the meeting',
             waitingRoomHeading: 'Waiting for host...',
             waitingRoomDescription:
                 "The meeting hasn't started yet.<br />You'll join automatically when the host opens the room.",
@@ -389,29 +395,29 @@ module.exports = {
             waitingRoomSongUrl: '../sounds/waiting-music.mp3',
         },
         html: {
-            topSponsors: true,
+            topSponsors: false,
             features: true,
             teams: true, // please keep me always true ;)
             tryEasier: true,
-            poweredBy: true,
-            sponsors: true,
-            pastSponsors: true,
-            advertisers: true,
-            supportUs: true,
+            poweredBy: false,
+            sponsors: false,
+            pastSponsors: false,
+            advertisers: false,
+            supportUs: false,
             footer: true,
         },
         about: {
             imageUrl: '../images/mirotalk-logo.gif',
-            title: `WebRTC P2P v${packageJson.version}`,
+            title: `VCPeer v1.0.0`,
             html: `
                 <div class="about-content">
                     <p class="about-description">
-                        Secure peer-to-peer video meetings directly in your browser.
+                        Free, peer-to-peer video calls directly in your browser.
                     </p>
                     <a
                         class="about-primary-action"
                         data-umami-event="About button"
-                        href="https://docs.mirotalk.com/sites/p2p"
+                        href="https://vcpeer.com"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
@@ -424,11 +430,11 @@ module.exports = {
                             <dd>
                                 <a
                                     id="linkedin-button"
-                                    data-umami-event="Linkedin button"
-                                    href="https://www.linkedin.com/in/miroslav-pejic-976a07101/"
+                                    data-umami-event="Author link"
+                                    href="https://vcpeer.com"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                >Miroslav Pejic</a>
+                                >VCPeer</a>
                             </dd>
                         </div>
                         <div>
@@ -437,13 +443,25 @@ module.exports = {
                                 <a
                                     id="email-button"
                                     data-umami-event="Email button"
-                                    href="mailto:miroslav.pejic.85@gmail.com?subject=MiroTalk P2P info"
-                                >miroslav.pejic.85@gmail.com</a>
+                                    href="mailto:hello@vcpeer.com?subject=VCPeer info"
+                                >hello@vcpeer.com</a>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Source code</dt>
+                            <dd>
+                                <a
+                                    id="source-code-button"
+                                    data-umami-event="Source code link"
+                                    href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >github.com/caelum0x/vcpeer-mirotalk</a>
                             </dd>
                         </div>
                     </dl>
                     <footer class="about-footer">
-                        &copy; ${new Date().getFullYear()} MiroTalk P2P. All rights reserved.
+                        &copy; ${new Date().getFullYear()} VCPeer. All rights reserved.
                     </footer>
                 </div>
             `,
@@ -475,7 +493,7 @@ module.exports = {
                     connectText: 'connect in < 5 seconds',
                     onlineText: 'We are online',
                     offlineText: 'We are offline',
-                    poweredBy: 'Powered by MiroTalk',
+                    poweredBy: 'Powered by VCPeer',
                 },
             },
         },

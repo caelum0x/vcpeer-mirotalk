@@ -1,36 +1,33 @@
 <div align="center">
-    <a href="https://p2p.mirotalk.com" target="_blank">
+    <a href="https://vcpeer.com" target="_blank">
         <img src="public/images/mirotalk-icon.png">
     </a>
 </div>
 
-<h1 align="center">MiroTalk P2P - Open Source Self-Hosted WebRTC P2P Video Conferencing</h1>
+<h1 align="center">VCPeer - Free, No-Signup, Peer-to-Peer Video Calls</h1>
 
-<h3 align="center">Open Source Peer-to-Peer Video Conferencing You Can Self-Host in Minutes</h3>
+<h3 align="center">Free browser video calls. No signup, no download, no time limit.</h3>
 
-<h4 align="center">Free, Secure, Fast Real-Time Communication - up to 8K, 60fps. Works in All Browsers and Platforms.</h4>
+<h4 align="center">Peer-to-peer and private — your call never touches our servers.</h4>
 
 <br />
 
 <div align="center">
 
-[![GitHub Stars](https://img.shields.io/github/stars/miroslavpejic85/mirotalk?style=social)](https://github.com/miroslavpejic85/mirotalk/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/miroslavpejic85/mirotalk?style=social)](https://github.com/miroslavpejic85/mirotalk/network/members)
+[![GitHub Stars](https://img.shields.io/github/stars/caelum0x/vcpeer-mirotalk?style=social)](https://github.com/caelum0x/vcpeer-mirotalk/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/caelum0x/vcpeer-mirotalk?style=social)](https://github.com/caelum0x/vcpeer-mirotalk/network/members)
 
 <a href="https://choosealicense.com/licenses/agpl-3.0/">![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3_Open_Source-blue.svg)</a>
-<a href="https://hub.docker.com/r/mirotalk/p2p">![Docker Pulls](https://img.shields.io/docker/pulls/mirotalk/p2p)</a>
-<a href="https://github.com/miroslavpejic85/mirotalk/commits/master">![Last Commit](https://img.shields.io/github/last-commit/miroslavpejic85/mirotalk)</a>
-<a href="https://discord.gg/rgGYfeYW3N">![Discord](https://img.shields.io/badge/Discord-Community-5865F2?logo=discord&logoColor=white)</a>
-<a href="https://www.linkedin.com/in/miroslav-pejic-976a07101/">![Author](https://img.shields.io/badge/Author-Miroslav_Pejic-brightgreen.svg)</a>
+<a href="https://github.com/caelum0x/vcpeer-mirotalk/commits/feat/vcpeer-launch-2026-10-14">![Last Commit](https://img.shields.io/github/last-commit/caelum0x/vcpeer-mirotalk)</a>
 
 </div>
 
 <br />
 
-<p align="center"><strong>MiroTalk P2P</strong> is a <strong>self-hosted, open-source video conferencing</strong> platform using direct <strong>peer-to-peer WebRTC connections</strong> for fast, secure, real-time communication. Deploy on your own server in minutes. Enjoy unlimited rooms, no time limits, end-to-end privacy, and a rich feature set - all under your control.</p>
+<p align="center"><strong>VCPeer</strong> is a <strong>free, no-signup, no-download video calling</strong> platform using direct <strong>peer-to-peer WebRTC connections</strong>. No account, no time limit — just a link to share. VCPeer is a rebrand/fork of the open-source <a href="https://github.com/miroslavpejic85/mirotalk">MiroTalk P2P</a> project (AGPL-3.0) — see <a href="NOTICE.md">NOTICE.md</a> for attribution.</p>
 
 <p align="center">
-    <a href="https://p2p.mirotalk.com">Try Live Demo</a> · <a href="https://p2p.mirotalk.com/privacy">Privacy</a> · <a href="https://docs.mirotalk.com/mirotalk-p2p/self-hosting/">Documentation</a> · <a href="https://discord.gg/rgGYfeYW3N">Discord</a> · <a href="https://github.com/sponsors/miroslavpejic85">Sponsor</a>
+    <a href="https://vcpeer.com">Try VCPeer</a> · <a href="https://vcpeer.com/privacy">Privacy</a> · <a href="https://github.com/caelum0x/vcpeer-mirotalk">Source code</a>
 </p>
 
 <br />

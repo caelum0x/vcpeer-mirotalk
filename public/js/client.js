@@ -674,6 +674,7 @@ let myPeerName = getPeerName();
 let myPeerAvatar = getPeerAvatar();
 let myToken = getPeerToken(); // peer JWT
 let isPresenter = false; // True Who init the room (aka first peer joined)
+let roomCreatedEventSent = false; // Fire the room_created analytics event only once per session
 let myHandStatus = false;
 let myVideoStatus = false;
 let myAudioStatus = false;
@@ -1713,6 +1714,15 @@ function handleServerInfo(config) {
     if (maxRoomParticipants) thisMaxRoomParticipants = maxRoomParticipants;
     if (peers_count > thisMaxRoomParticipants) {
         return roomIsBusy();
+    }
+
+    // Analytics: the server just confirmed this peer's room/signaling connection
+    // succeeded (not room-is-busy, not unauthorized) — fire once per session.
+    if (!roomCreatedEventSent) {
+        roomCreatedEventSent = true;
+        if (window.railyard && typeof window.railyard.track === 'function') {
+            window.railyard.track('room_created', { peers_count: peers_count });
+        }
     }
 
     // Let start with some basic rules

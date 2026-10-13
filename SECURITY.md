@@ -2,7 +2,7 @@
 
 ## Reporting a Vulnerability
 
-If you have discovered a security issue, please report it privately through [GitHub Security Advisories](https://github.com/miroslavpejic85/mirotalk/security/advisories/new).
+If you have discovered a security issue in VCPeer itself, please report it privately through [GitHub Security Advisories](https://github.com/caelum0x/vcpeer-mirotalk/security/advisories/new). For issues in the upstream MiroTalk P2P codebase, also consider reporting to [the upstream project](https://github.com/miroslavpejic85/mirotalk/security/advisories/new).
 Please refrain from creating a public GitHub issue or disclosing the vulnerability publicly.
 We prefer a Coordinated Vulnerability Disclosure (CVD) to properly understand and fix the root cause problem.
 

@@ -56,10 +56,10 @@ let brand = {
     app: {
         language: 'en',
         translationMode: 'google',
-        name: 'MiroTalk',
-        title: 'MiroTalk<br />Free browser based Real-time video calls.<br />Simple, Secure, Fast.',
+        name: 'VCPeer',
+        title: 'VCPeer<br />Free browser video calls. No signup, no download, no time limit.',
         description:
-            'Start your next video call with a single click. No download, plug-in, or login is required. Just get straight to talking, messaging, and sharing your screen.',
+            'Start a video call in one click. No account, no download, no time limit. Calls are peer-to-peer and never recorded by us.',
         joinDescription: 'Pick a room name.<br />How about this one?',
         joinButtonLabel: 'JOIN ROOM',
         customizeRoomButtonLabel: 'CUSTOMIZE ROOM',
@@ -68,22 +68,22 @@ let brand = {
     site: {
         shortcutIcon: '../images/logo.svg',
         appleTouchIcon: '../images/logo.svg',
-        landingTitle: 'MiroTalk P2P - Open Source WebRTC Video Calls & Meetings',
-        newCallTitle: 'MiroTalk a Free Secure Video Calls, Chat & Screen Sharing.',
+        landingTitle: 'VCPeer — Free P2P Video Calls, No Signup, No Time Limit',
+        newCallTitle: 'VCPeer a Free Secure Video Calls, Chat & Screen Sharing.',
         newCallRoomTitle: 'Pick name. <br />Share URL. <br />Start conference.',
         newCallRoomDescription:
             "Each room has its disposable URL. Just pick a room name and share your custom URL. It's that easy.",
-        loginTitle: 'MiroTalk - Host Protected login required.',
+        loginTitle: 'VCPeer - Host Protected login required.',
         loginHeading: 'Welcome back',
         loginDescription: 'Enter your credentials to continue.',
         loginButtonLabel: 'Login',
         joinRoomTitle: 'Pick name.<br />Share URL.<br />Start conference.',
         joinRoomButtonLabel: 'JOIN ROOM',
-        clientTitle: 'MiroTalk WebRTC Video call, Chat Room & Screen Sharing.',
-        privacyPolicyTitle: 'MiroTalk - privacy and policy.',
+        clientTitle: 'VCPeer WebRTC Video call, Chat Room & Screen Sharing.',
+        privacyPolicyTitle: 'VCPeer - privacy and policy.',
         stunTurnTitle: 'Test Stun/Turn Servers.',
-        notFoundTitle: 'MiroTalk - 404 Page not found.',
-        waitingRoomTitle: 'MiroTalk - Waiting for host to start the meeting',
+        notFoundTitle: 'VCPeer - 404 Page not found.',
+        waitingRoomTitle: 'VCPeer - Waiting for host to start the meeting',
         waitingRoomHeading: 'Waiting for host...',
         waitingRoomDescription:
             "The meeting hasn't started yet.<br />You'll join automatically when the host opens the room.",
@@ -97,44 +97,44 @@ let brand = {
         waitingRoomSongUrl: '',
     },
     html: {
-        topSponsors: true,
+        topSponsors: false,
         features: true,
         teams: true, // please keep me always true ;)
         tryEasier: true,
-        poweredBy: true,
-        sponsors: true,
-        pastSponsors: true,
-        advertisers: true,
-        supportUs: true,
+        poweredBy: false,
+        sponsors: false,
+        pastSponsors: false,
+        advertisers: false,
+        supportUs: false,
         footer: true,
     },
     about: {
         imageUrl: '../images/mirotalk-logo.gif',
-        title: 'WebRTC P2P v2.1.49',
+        title: 'VCPeer v1.0.0',
         html: `
-            <button 
-                id="support-button" 
-                data-umami-event="Support button" 
-                onclick="window.open('https://codecanyon.net/user/miroslavpejic85')">
-                <i class="fas fa-heart" ></i>&nbsp;Support
-            </button>
-            <br /><br /><br />
-            Author:<a 
-                id="linkedin-button" 
-                data-umami-event="Linkedin button" 
-                href="https://www.linkedin.com/in/miroslav-pejic-976a07101/" target="_blank"> 
-                Miroslav Pejic
+            Author:<a
+                id="linkedin-button"
+                data-umami-event="Author link"
+                href="https://vcpeer.com" target="_blank">
+                VCPeer
             </a>
             <br /><br />
-            Email:<a 
-                id="email-button" 
-                data-umami-event="Email button" 
-                href="mailto:miroslav.pejic.85@gmail.com?subject=MiroTalk P2P info"> 
-                miroslav.pejic.85@gmail.com
+            Email:<a
+                id="email-button"
+                data-umami-event="Email button"
+                href="mailto:hello@vcpeer.com?subject=VCPeer info">
+                hello@vcpeer.com
+            </a>
+            <br /><br />
+            Source code:<a
+                id="source-code-button"
+                data-umami-event="Source code link"
+                href="https://github.com/caelum0x/vcpeer-mirotalk" target="_blank">
+                github.com/caelum0x/vcpeer-mirotalk
             </a>
             <br /><br />
             <hr />
-            <span>&copy; 2025 MiroTalk P2P, all rights reserved</span>
+            <span>&copy; 2026 VCPeer, all rights reserved</span>
             <hr />
         `,
     },
@@ -164,7 +164,7 @@ let brand = {
                 connectText: 'connect in < 5 seconds',
                 onlineText: 'We are online',
                 offlineText: 'We are offline',
-                poweredBy: 'Powered by MiroTalk',
+                poweredBy: 'Powered by VCPeer',
             },
         },
     },

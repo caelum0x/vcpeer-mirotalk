@@ -24,3 +24,7 @@ output
 env.txt
 
 .idea
+
+# VCPeer deploy secrets (never commit)
+deploy/.env.insights
+deploy/.env.production

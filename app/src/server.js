@@ -451,6 +451,13 @@ const views = {
     customizeRoom: path.join(__dirname, '../../', 'public/views/customizeRoom.html'),
     stunTurn: path.join(__dirname, '../../', 'public/views/testStunTurn.html'),
     waitingRoom: path.join(__dirname, '../../', 'public/views/waitingRoom.html'),
+    // SEO landing pages (static, matching researched query clusters, see
+    // plans/vcpeer-build-2026-10-14.md "SEO pages" section)
+    seoFreeVideoCall: path.join(__dirname, '../../', 'public/views/seo/free-video-call.html'),
+    seoNoTimeLimit: path.join(__dirname, '../../', 'public/views/seo/video-call-no-time-limit.html'),
+    seoVideoCallLink: path.join(__dirname, '../../', 'public/views/seo/video-call-link.html'),
+    seoGroupVideoCall: path.join(__dirname, '../../', 'public/views/seo/group-video-call-free.html'),
+    seoScreenShare: path.join(__dirname, '../../', 'public/views/seo/screen-share-no-signup.html'),
 };
 
 // Branding configuration
@@ -710,14 +717,31 @@ app.get('/stats', (req, res) => {
     res.send(statsData);
 });
 
-// MiroTalk P2P documentation
+// VCPeer about/source — AGPL Section 13 corresponding-source link
 app.get(['/about'], (req, res) => {
-    res.redirect(301, 'https://docs.mirotalk.com/mirotalk-p2p/');
+    res.redirect(301, 'https://github.com/caelum0x/vcpeer-mirotalk');
 });
 
 // privacy policy
 app.get(['/privacy'], (req, res) => {
     res.sendFile(views.privacy);
+});
+
+// SEO pages — static, matching researched query clusters, no competitor names
+app.get('/free-video-call', (req, res) => {
+    res.sendFile(views.seoFreeVideoCall);
+});
+app.get('/video-call-no-time-limit', (req, res) => {
+    res.sendFile(views.seoNoTimeLimit);
+});
+app.get('/video-call-link', (req, res) => {
+    res.sendFile(views.seoVideoCallLink);
+});
+app.get('/group-video-call-free', (req, res) => {
+    res.sendFile(views.seoGroupVideoCall);
+});
+app.get('/screen-share-no-signup', (req, res) => {
+    res.sendFile(views.seoScreenShare);
 });
 
 // test Stun and Turn connections
