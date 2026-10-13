@@ -87,6 +87,7 @@ const nodemailer = require('./lib/nodemailer');
 const packageJson = require('../../package.json');
 
 const { loginLimiter, createRoomTokenLimiter, sendCodeLimiter } = require('./middleware/rateLimiter');
+const { initTransfers } = require('./transfers');
 
 const port = config.server.port;
 const host = config.server.host;
@@ -775,6 +776,13 @@ app.get(`${apiBasePath}/send/code/:code`, (req, res) => {
     if (!channel) return res.status(404).json({ message: 'Code not found or expired' });
     res.json({ channel });
 });
+
+// VCPeer Send "Send a link" — WeTransfer-style upload-and-share, encrypted at
+// rest, a storage-backed secondary mode alongside the live P2P "Send now"
+// above. See app/src/transfers/index.js and plans/vcpeer.md "Built 2026-10-14:
+// VCPeer share suite".
+const transfers = initTransfers(config);
+app.use(`${apiBasePath}/transfers`, transfers.router);
 
 // test Stun and Turn connections
 app.get(['/icetest'], (req, res) => {

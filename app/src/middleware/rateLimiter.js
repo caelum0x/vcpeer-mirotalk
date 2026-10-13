@@ -53,4 +53,56 @@ const sendCodeLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
-module.exports = { loginLimiter, createRoomTokenLimiter, sendCodeLimiter };
+// VCPeer Send "Send a link": creating a transfer declares a size and reserves
+// quota, so keep this tighter than the cheap read-only endpoints below.
+const transferCreateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many transfers created. Please try again in an hour.' },
+    keyGenerator: getClientIP,
+});
+
+// Chunk uploads are frequent and expected for any multi-GB transfer (a 2 GiB
+// upload at the default 8 MiB chunk size is ~256 PUTs) — generous ceiling,
+// still bounds a single IP from hammering disk/CPU with encryption work.
+const transferChunkLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 4000,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many chunk uploads. Please slow down and retry shortly.' },
+    keyGenerator: getClientIP,
+});
+
+// Sender-email verification code request/confirm — must be tight, this is the
+// anti-spam gate for "Send by email".
+const transferEmailVerifyLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 8,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many verification attempts. Please try again later.' },
+    keyGenerator: getClientIP,
+});
+
+// Abuse-report link on download pages.
+const transferReportLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many reports. Please try again later.' },
+    keyGenerator: getClientIP,
+});
+
+module.exports = {
+    loginLimiter,
+    createRoomTokenLimiter,
+    sendCodeLimiter,
+    transferCreateLimiter,
+    transferChunkLimiter,
+    transferEmailVerifyLimiter,
+    transferReportLimiter,
+};

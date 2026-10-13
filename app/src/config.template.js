@@ -23,6 +23,8 @@
 
 require('dotenv').config();
 
+const path = require('path');
+
 const packageJson = require('../../package.json');
 
 // Helper: parse env string to boolean
@@ -631,5 +633,51 @@ module.exports = {
     webhook: {
         enabled: false, // Enable webhook functionality
         url: 'http://localhost:8888/webhook-endpoint', // Webhook server URL
+    },
+
+    // ==========================================
+    // VCPeer Send — "Send a link" (WeTransfer-style upload-and-share)
+    // ==========================================
+    // Files are uploaded in chunks, encrypted at rest with a server-managed
+    // AES-256-GCM key (NOT end-to-end: the server can decrypt to build zips and
+    // previews — see public/views/send.html FAQ, which states this honestly).
+    // The live P2P "Send now" mode is unaffected and still never touches the
+    // server at all.
+    transfers: {
+        // 'local' writes to disk at dataDir. 'r2' uses a Cloudflare R2 (S3-compatible)
+        // bucket — see the r2.* keys below.
+        storageDriver: process.env.SEND_LINK_STORAGE_DRIVER || 'local',
+        dataDir: process.env.SEND_LINK_DATA_DIR || path.join(__dirname, 'data', 'transfers'),
+        chunkBytes: Number(process.env.SEND_LINK_CHUNK_BYTES) || 8 * 1024 * 1024, // 8 MiB
+        maxTransferBytes: Number(process.env.SEND_LINK_MAX_TRANSFER_BYTES) || 2 * 1024 * 1024 * 1024, // 2 GiB default cap
+        dailyIpQuotaBytes: Number(process.env.SEND_LINK_DAILY_IP_QUOTA_BYTES) || 10 * 1024 * 1024 * 1024, // 10 GiB/day/IP
+        dailyEmailSendLimit: Number(process.env.SEND_LINK_DAILY_EMAIL_LIMIT) || 20, // transfers/day per verified sender email
+        defaultExpiryDays: Number(process.env.SEND_LINK_DEFAULT_EXPIRY_DAYS) || 7,
+        allowedExpiryDays: [1, 3, 7],
+        previewMaxBytes: Number(process.env.SEND_LINK_PREVIEW_MAX_BYTES) || 50 * 1024 * 1024, // 50 MiB cheap-preview cap
+        cleanupIntervalMs: Number(process.env.SEND_LINK_CLEANUP_INTERVAL_MS) || 15 * 60 * 1000,
+        emailVerifyCodeTtlMs: Number(process.env.SEND_LINK_EMAIL_VERIFY_TTL_MS) || 10 * 60 * 1000,
+        r2: {
+            accountId: process.env.R2_ACCOUNT_ID || '',
+            accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+            bucket: process.env.R2_BUCKET || '',
+            // Optional override; default is derived from accountId as
+            // `https://<accountId>.r2.cloudflarestorage.com`.
+            endpoint: process.env.R2_ENDPOINT || '',
+            region: process.env.R2_REGION || 'auto',
+        },
+    },
+
+    // ==========================================
+    // Mail (Scribase Mail / Resend-compatible API)
+    // ==========================================
+    // Used only by VCPeer Send's "Send by email" delivery mode and sender-email
+    // verification codes. If apiUrl/apiKey are unset, email sending fails soft
+    // (the UI falls back to "Get a link" — see app/src/lib/mailClient.js).
+    mail: {
+        apiUrl: process.env.MAIL_API_URL || '',
+        apiKey: process.env.MAIL_API_KEY || '',
+        from: process.env.MAIL_FROM || 'VCPeer <send@vcpeer.com>',
     },
 };

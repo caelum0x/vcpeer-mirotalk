@@ -17,6 +17,9 @@ bun.lock
 # personal env
 .env
 config.js
+
+# VCPeer Send "Send a link" storage (local-disk driver) — encrypted blobs + metadata
+app/src/data/transfers/
 docker-push.sh
 docker-compose.yml
 turnserver.conf
