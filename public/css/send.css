@@ -336,3 +336,15 @@
         flex-direction: column;
     }
 }
+
+/* Keep the headline and the drop box together: the two stacked sections
+   each add their own vertical padding, which left a large empty gap. */
+.send-hero.section,
+.send-hero .section-inner {
+    padding-bottom: 0;
+}
+
+.send-app-section.section,
+.send-app-section .section-inner {
+    padding-top: 0;
+}
