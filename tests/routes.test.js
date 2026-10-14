@@ -64,6 +64,9 @@ describe('VCPeer routes', function () {
         { route: '/video-call-link', titleContains: 'Video Call Link' },
         { route: '/group-video-call-free', titleContains: 'Group Video Call' },
         { route: '/screen-share-no-signup', titleContains: 'Screen Share' },
+        { route: '/wetransfer-alternative', titleContains: 'WeTransfer Alternative' },
+        { route: '/free-scheduling-link', titleContains: 'Free Scheduling Link' },
+        { route: '/stream-to-twitch-and-kick', titleContains: 'Stream to Twitch and Kick' },
     ];
 
     seoPages.forEach(({ route, titleContains }) => {
@@ -89,6 +92,20 @@ describe('VCPeer routes', function () {
         body.should.containEql('https://vcpeer.com/video-call-link');
         body.should.containEql('https://vcpeer.com/group-video-call-free');
         body.should.containEql('https://vcpeer.com/screen-share-no-signup');
+        body.should.containEql('https://vcpeer.com/send');
+        body.should.containEql('https://vcpeer.com/wetransfer-alternative');
+        body.should.containEql('https://vcpeer.com/free-scheduling-link');
+        body.should.containEql('https://vcpeer.com/stream-to-twitch-and-kick');
+    });
+
+    it('GET / includes the suite nav links to every VCPeer tool', async () => {
+        const res = await fetch(`${BASE}/`);
+        res.status.should.equal(200);
+        const body = await res.text();
+        body.should.containEql('href="/send"');
+        body.should.containEql('href="https://share.vcpeer.com"');
+        body.should.containEql('href="https://book.vcpeer.com"');
+        body.should.containEql('href="https://live.vcpeer.com"');
     });
 
     it('GET /robots.txt returns 200 text and allows indexing', async () => {

@@ -461,6 +461,9 @@ const views = {
     seoVideoCallLink: path.join(__dirname, '../../', 'public/views/seo/video-call-link.html'),
     seoGroupVideoCall: path.join(__dirname, '../../', 'public/views/seo/group-video-call-free.html'),
     seoScreenShare: path.join(__dirname, '../../', 'public/views/seo/screen-share-no-signup.html'),
+    seoWetransferAlternative: path.join(__dirname, '../../', 'public/views/seo/wetransfer-alternative.html'),
+    seoFreeSchedulingLink: path.join(__dirname, '../../', 'public/views/seo/free-scheduling-link.html'),
+    seoStreamTwitchKick: path.join(__dirname, '../../', 'public/views/seo/stream-to-twitch-and-kick.html'),
 };
 
 // Branding configuration
@@ -745,6 +748,15 @@ app.get('/group-video-call-free', (req, res) => {
 });
 app.get('/screen-share-no-signup', (req, res) => {
     res.sendFile(views.seoScreenShare);
+});
+app.get('/wetransfer-alternative', (req, res) => {
+    res.sendFile(views.seoWetransferAlternative);
+});
+app.get('/free-scheduling-link', (req, res) => {
+    res.sendFile(views.seoFreeSchedulingLink);
+});
+app.get('/stream-to-twitch-and-kick', (req, res) => {
+    res.sendFile(views.seoStreamTwitchKick);
 });
 
 // VCPeer Send — P2P large-file transfer page. Reuses the existing signaling
