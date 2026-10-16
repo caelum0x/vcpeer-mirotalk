@@ -104,7 +104,7 @@ describe('VCPeer routes', function () {
         const body = await res.text();
         body.should.containEql('href="/send"');
         body.should.containEql('href="https://share.vcpeer.com"');
-        body.should.containEql('href="https://book.vcpeer.com"');
+        body.should.containEql('href="https://book.vcpeer.com/admin/30min"');
         body.should.containEql('href="https://live.vcpeer.com"');
     });
 
