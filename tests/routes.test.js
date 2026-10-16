@@ -129,4 +129,19 @@ describe('VCPeer routes', function () {
         res.status.should.equal(301);
         res.headers.get('location').should.equal('https://github.com/caelum0x/vcpeer-mirotalk');
     });
+
+    it('GET on an unmatched static-asset-style path returns a real 404, not a soft 200', async () => {
+        const res = await fetch(`${BASE}/images/this-file-does-not-exist.png`);
+        res.status.should.equal(404);
+        const body = await res.text();
+        body.should.containEql('Page not found');
+    });
+
+    it('GET / does not show the upstream MiroTalk fork author as a VCPeer team member', async () => {
+        const res = await fetch(`${BASE}/`);
+        const body = await res.text();
+        body.should.not.containEql('Meet the team');
+        body.should.not.containEql('Miroslav Pejic');
+        body.should.not.containEql('miroslav-pejic');
+    });
 });

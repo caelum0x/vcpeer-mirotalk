@@ -1306,7 +1306,7 @@ app.get(`${apiBasePath}/activeRooms`, (req, res) => {
 
 // not match any of page before, so 404 not found
 app.use((req, res) => {
-    res.sendFile(views.notFound);
+    res.status(404).sendFile(views.notFound);
 });
 
 // Global error handler for URIError and other errors
