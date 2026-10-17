@@ -108,7 +108,13 @@ function isValidUrl(input) {
     if (typeof input !== 'string' || input.length === 0 || input.length > URL_MAX) return false;
     try {
         const parsed = new URL(input);
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+        // Reject bare hostnames with no dot (e.g. "https://spa"). The WHATWG URL
+        // parser happily accepts these as a valid origin, but no real public
+        // product lives at a dotless host — this is always a truncated or
+        // mistyped submission, and left live it's a dead link on the directory.
+        // (Found in production: a real submission persisted as "https://spa".)
+        return parsed.hostname.includes('.');
     } catch {
         return false;
     }

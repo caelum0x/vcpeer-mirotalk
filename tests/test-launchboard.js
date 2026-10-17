@@ -112,6 +112,26 @@ describe('test-launchboard', () => {
         Launchboard.isValidUrl('https://example.com').should.be.true();
     });
 
+    it('isValidUrl rejects dotless/truncated hostnames (e.g. a cut-off URL)', () => {
+        // Regression test: found live in production as a real submission
+        // ("https://spa", meant to be "https://spawndroid.io") — the WHATWG
+        // URL parser accepts it as well-formed, so this needs an explicit check.
+        Launchboard.isValidUrl('https://spa').should.be.false();
+        Launchboard.isValidUrl('https://localhost').should.be.false();
+        Launchboard.isValidUrl('https://spawndroid.io').should.be.true();
+    });
+
+    it('create() rejects a submission with a dotless hostname', () => {
+        const result = Launchboard.create({
+            name: 'Truncated Co',
+            url: 'https://spa',
+            pitch: 'This URL looks truncated and should be rejected.',
+            category: 'saas',
+        });
+        result.should.have.property('errors');
+        result.errors.should.containEql('Enter a valid http:// or https:// URL.');
+    });
+
     it('persists listings across a fresh require (survives a restart)', () => {
         Launchboard.create({
             name: 'Persisted Co',
