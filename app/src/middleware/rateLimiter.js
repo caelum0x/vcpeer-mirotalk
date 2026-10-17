@@ -53,6 +53,24 @@ const sendCodeLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// VCPeer Send: resolving a 6-digit code is the side that actually matters for
+// brute force — the codespace is only 1,000,000 combinations and a hit hijacks
+// someone else's active file transfer. This endpoint had NO rate limiting at
+// all (unlike sendCodeLimiter above, which only throttles minting), so an
+// attacker could hammer it unthrottled and guess a live code well inside its
+// 30-minute TTL. Cap it tighter than minting since legitimate use is a single
+// lookup, not a burst.
+const sendCodeResolveLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        message: 'Too many requests. Please try again in a minute.',
+    },
+    keyGenerator: getClientIP,
+});
+
 // Launchboard: submitting a listing is an unauthenticated POST that writes to
 // disk, so cap it per IP the same way as sendCodeLimiter.
 const launchboardSubmitLimiter = rateLimit({
@@ -66,4 +84,10 @@ const launchboardSubmitLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
-module.exports = { loginLimiter, createRoomTokenLimiter, sendCodeLimiter, launchboardSubmitLimiter };
+module.exports = {
+    loginLimiter,
+    createRoomTokenLimiter,
+    sendCodeLimiter,
+    sendCodeResolveLimiter,
+    launchboardSubmitLimiter,
+};

@@ -92,6 +92,7 @@ const {
     loginLimiter,
     createRoomTokenLimiter,
     sendCodeLimiter,
+    sendCodeResolveLimiter,
     launchboardSubmitLimiter,
 } = require('./middleware/rateLimiter');
 
@@ -786,8 +787,11 @@ app.post(`${apiBasePath}/send/code`, sendCodeLimiter, (req, res) => {
     res.json({ code, expiresInMs: SendCode.TTL_MS });
 });
 
-// Resolve a 6-digit code back to its room token.
-app.get(`${apiBasePath}/send/code/:code`, (req, res) => {
+// Resolve a 6-digit code back to its room token. Rate-limited per IP: this is
+// the brute-forceable side of the 6-digit alias (1,000,000 combinations) —
+// without a limiter here, an attacker could hammer this endpoint unthrottled
+// and hijack any live transfer's code well inside its 30-minute TTL.
+app.get(`${apiBasePath}/send/code/:code`, sendCodeResolveLimiter, (req, res) => {
     const code = String(req.params.code || '').trim();
     if (!/^\d{6}$/.test(code)) return res.status(400).json({ message: 'Invalid code' });
     const channel = SendCode.resolveCode(code);
