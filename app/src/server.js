@@ -72,6 +72,8 @@ const MattermostController = require('./mattermost');
 const Validate = require('./validate');
 const RoomPassword = require('./roomPassword');
 const SendCode = require('./sendCode');
+const Launchboard = require('./launchboard');
+const { renderLaunchboardPage } = require('./launchboardView');
 const HtmlInjector = require('./htmlInjector');
 const Host = require('./host');
 const Logs = require('./logs');
@@ -86,7 +88,12 @@ const nodemailer = require('./lib/nodemailer');
 
 const packageJson = require('../../package.json');
 
-const { loginLimiter, createRoomTokenLimiter, sendCodeLimiter } = require('./middleware/rateLimiter');
+const {
+    loginLimiter,
+    createRoomTokenLimiter,
+    sendCodeLimiter,
+    launchboardSubmitLimiter,
+} = require('./middleware/rateLimiter');
 
 const port = config.server.port;
 const host = config.server.host;
@@ -786,6 +793,53 @@ app.get(`${apiBasePath}/send/code/:code`, (req, res) => {
     const channel = SendCode.resolveCode(code);
     if (!channel) return res.status(404).json({ message: 'Code not found or expired' });
     res.json({ channel });
+});
+
+// Launchboard — free startup directory. Submit a product (name, URL,
+// one-line pitch, category), see it listed immediately, free launch video
+// offer from Menivor linked at the top. See plans/vcpeer.md "Launchboard".
+app.get('/launchboard', (req, res) => {
+    const message = req.query.submitted === '1' ? "You're listed. Grab your free launch video above." : undefined;
+    res.send(
+        renderLaunchboardPage({
+            listings: Launchboard.listAll(),
+            message,
+            messageType: message ? 'success' : undefined,
+        })
+    );
+});
+
+app.post('/launchboard/submit', launchboardSubmitLimiter, (req, res) => {
+    const fields = checkXSS(req.body || {});
+    const result = Launchboard.create(fields);
+
+    if (result.error) {
+        return res.status(503).send(
+            renderLaunchboardPage({
+                listings: Launchboard.listAll(),
+                errors: [result.error],
+                values: fields,
+            })
+        );
+    }
+
+    if (result.errors) {
+        return res.status(422).send(
+            renderLaunchboardPage({
+                listings: Launchboard.listAll(),
+                errors: result.errors,
+                values: fields,
+            })
+        );
+    }
+
+    res.redirect(303, '/launchboard?submitted=1');
+});
+
+// Read-only JSON view of current listings, so the directory's mechanics are
+// independently verifiable (and reusable by other VCPeer pages/tools later).
+app.get(`${apiBasePath}/launchboard/listings`, (req, res) => {
+    res.json({ listings: Launchboard.listAll() });
 });
 
 // test Stun and Turn connections

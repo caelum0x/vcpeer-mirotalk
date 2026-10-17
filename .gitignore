@@ -28,3 +28,7 @@ env.txt
 # VCPeer deploy secrets (never commit)
 deploy/.env.insights
 deploy/.env.production
+
+# Launchboard submissions (real user data, never commit or let a redeploy
+# overwrite it — see deploy/README.md)
+app/data/launchboard.json

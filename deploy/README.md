@@ -94,6 +94,25 @@ package.json, README.md) to match if that happens.
       deployed commit (AGPL check from step 4)
     - Railyard Insights dashboard (`deploy/.env.insights`, gitignored, has the token)
       shows a page view within a minute
+    - `/launchboard` returns 200 and `/api/v1/launchboard/listings` returns real JSON
+
+## Launchboard data file — never overwrite on redeploy
+
+Launchboard submissions persist to `app/data/launchboard.json` on the box (no DB is
+wired into this fork — see `app/src/launchboard.js`). The live box is a plain rsync'd
+directory, not a git checkout, so any redeploy command MUST exclude that file or every
+real founder submission is lost on the next push:
+
+```
+rsync -az --delete \
+  --exclude node_modules --exclude .git --exclude .env \
+  --exclude app/data/launchboard.json \
+  ./ deploy@130.61.180.42:/srv/src/vcpeer/
+pm2 restart vcpeer
+```
+
+`LAUNCHBOARD_DATA_DIR` env var can point this at a path outside the synced tree
+entirely if that's ever preferred.
 
 ## Rollback (single command, no history rewrite needed)
 

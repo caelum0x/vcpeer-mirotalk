@@ -53,4 +53,17 @@ const sendCodeLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
-module.exports = { loginLimiter, createRoomTokenLimiter, sendCodeLimiter };
+// Launchboard: submitting a listing is an unauthenticated POST that writes to
+// disk, so cap it per IP the same way as sendCodeLimiter.
+const launchboardSubmitLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        message: 'Too many submissions. Please try again in a minute.',
+    },
+    keyGenerator: getClientIP,
+});
+
+module.exports = { loginLimiter, createRoomTokenLimiter, sendCodeLimiter, launchboardSubmitLimiter };

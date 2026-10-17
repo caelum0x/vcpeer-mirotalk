@@ -45,6 +45,10 @@ check_200 "/video-call-link"
 check_200 "/group-video-call-free"
 check_200 "/screen-share-no-signup"
 
+echo "== Launchboard =="
+check_200 "/launchboard"
+check_200 "/api/v1/launchboard/listings"
+
 echo "== legacy 301 redirects (old vcpeer.com VC-investor URLs) =="
 check_301_to_home "/vcs/anything"
 check_301_to_home "/fresh-funding"
