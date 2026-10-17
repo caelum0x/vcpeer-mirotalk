@@ -114,6 +114,34 @@ pm2 restart vcpeer
 `LAUNCHBOARD_DATA_DIR` env var can point this at a path outside the synced tree
 entirely if that's ever preferred.
 
+## `.node22` — the pinned runtime, also never overwrite on redeploy
+
+`/srv/src/vcpeer/.node22` is a Node v22 runtime installed directly on the box (not
+part of this git repo — system `node` on the box is v20, and pm2's `vcpeer` process
+is configured with `exec_interpreter: /srv/src/vcpeer/.node22/bin/node`). Because it
+isn't in this repo, it isn't in the rsync source tree either, so `rsync -az --delete`
+treats the whole directory as extraneous and deletes it — which deletes the exact
+binary pm2 needs to start the app, taking the site down until someone notices and
+restores it (hit live during this audit's deploy, 2026-10-17: a redeploy without this
+exclude took vcpeer.com to 502 for a few minutes before being caught by the post-deploy
+smoke test). **Always exclude it:**
+
+```
+rsync -az --delete \
+  --exclude node_modules --exclude .git --exclude .env \
+  --exclude app/data/launchboard.json \
+  --exclude .node22 \
+  ./ deploy@130.61.180.42:/srv/src/vcpeer/
+pm2 restart vcpeer
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3020/   # on the box, must be 200 before trusting the deploy
+```
+
+If it's ever deleted again: download the matching official build from
+`https://nodejs.org/dist/`, e.g. `node-v22.23.3-linux-arm64.tar.xz` (verify its
+checksum against that release's `SHASUMS256.txt`), extract it straight into
+`/srv/src/vcpeer/.node22` (it has the same `bin/lib/include/share` layout Node's own
+tarball uses), `chown -R deploy:deploy` it, then `pm2 restart vcpeer`.
+
 ## Rollback (single command, no history rewrite needed)
 
 ```
