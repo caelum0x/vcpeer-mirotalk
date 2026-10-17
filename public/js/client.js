@@ -702,6 +702,8 @@ let chatDataChannels = {}; // keep track of our peer chat data channels
 let fileDataChannels = {}; // keep track of our peer file sharing data channels
 let allPeers = {}; // keep track of all peers in the room, indexed by peer_id == socket.io id
 let pendingIceCandidates = {}; // keep track of pending ICE candidates before the peer connection is ready, indexed by peer_id == socket.io id
+let peerReconnectTimers = {}; // grace-period timer before warning about a 'disconnected' peer connection, indexed by peer_id == socket.io id
+let peerConnectionTroubled = {}; // true once the user has been warned about peer_id's connection trouble, indexed by peer_id == socket.io id
 
 let lastStats = null;
 
@@ -3322,19 +3324,72 @@ function emitMyPeerProfile() {
  * Handle peers connection state
  * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionstatechange_event
  * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
+ * Before this, a failed/dropped P2P path (e.g. symmetric NAT or a strict firewall with no TURN
+ * relay configured - see .env's TURN_SERVER_ENABLED) left the remote tile silently frozen with
+ * nothing but a console.log; the user had no idea the call had actually broken. Now:
+ * - 'disconnected' (often a brief blip) gets a grace period before we act.
+ * - 'failed' (ICE already gave up) warns immediately and attempts an ICE restart so the browsers
+ *   renegotiate instead of staying wedged.
+ * - 'connected' after either of the above clears the pending timer and tells the user they're back.
  * @param {string} peer_id socket.id
  */
 async function handlePeersConnectionStatus(peer_id) {
     peerConnections[peer_id].onconnectionstatechange = function (event) {
-        const connectionStatus = event.currentTarget.connectionState;
-        const signalingState = event.currentTarget.signalingState;
-        const peerName = allPeers[peer_id]['peer_name'];
+        const peerConnection = event.currentTarget;
+        const connectionStatus = peerConnection.connectionState;
+        const signalingState = peerConnection.signalingState;
+        const peerName = allPeers[peer_id] ? allPeers[peer_id]['peer_name'] : 'Participant';
+
         console.log('[RTCPeerConnection] - CONNECTION', {
             peer_id: peer_id,
             peer_name: peerName,
             connectionStatus: connectionStatus,
             signalingState: signalingState,
         });
+
+        const clearPendingReconnectTimer = () => {
+            if (peerReconnectTimers[peer_id]) {
+                clearTimeout(peerReconnectTimers[peer_id]);
+                delete peerReconnectTimers[peer_id];
+            }
+        };
+
+        const warnConnectionTrouble = () => {
+            peerConnectionTroubled[peer_id] = true;
+            userLog('warning', `Connection with ${peerName} is unstable, trying to reconnect...`, 'top-end', 4000);
+            if (typeof peerConnection.restartIce === 'function') peerConnection.restartIce();
+        };
+
+        switch (connectionStatus) {
+            case 'disconnected':
+                // Often a brief blip (short network hiccup) - give it a grace period before
+                // alarming the user and attempting a restart.
+                clearPendingReconnectTimer();
+                peerReconnectTimers[peer_id] = setTimeout(() => {
+                    delete peerReconnectTimers[peer_id];
+                    if (
+                        peerConnections[peer_id] === peerConnection &&
+                        peerConnection.connectionState === 'disconnected'
+                    ) {
+                        warnConnectionTrouble();
+                    }
+                }, 3000);
+                break;
+            case 'failed':
+                // ICE already gave up finding a working path - no point waiting, warn and retry now.
+                clearPendingReconnectTimer();
+                warnConnectionTrouble();
+                break;
+            case 'connected':
+                clearPendingReconnectTimer();
+                if (peerConnectionTroubled[peer_id]) {
+                    delete peerConnectionTroubled[peer_id];
+                    userLog('success', `Reconnected with ${peerName}`, 'top-end', 3000);
+                }
+                break;
+            default:
+                break;
+        }
     };
 }
 
@@ -3904,6 +3959,11 @@ function handleRemovePeer(config) {
     msgerRemovePeer(peer_id);
     removeVideoPinMediaContainer(peer_id);
 
+    if (peerReconnectTimers[peer_id]) {
+        clearTimeout(peerReconnectTimers[peer_id]);
+        delete peerReconnectTimers[peer_id];
+    }
+    delete peerConnectionTroubled[peer_id];
     delete chatDataChannels[peer_id];
     delete fileDataChannels[peer_id];
     delete peerConnections[peer_id];
