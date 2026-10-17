@@ -1117,6 +1117,18 @@ app.get('/brand', (req, res) => {
     res.status(200).json({ message: config.brand && brandHtmlInjection ? config.brand : false });
 });
 
+// Legacy URLs from the old VC-investor product that used to live at
+// vcpeer.com, before the pivot to this video-call suite — redirect them home
+// instead of letting the generic /:roomId handler below silently "join" a
+// room literally named "pricing" or "fresh-funding". See deploy/smoke-test.sh.
+const legacyVcInvestorPaths = ['/fresh-funding', '/tools', '/pricing', '/support'];
+app.get(legacyVcInvestorPaths, (req, res) => {
+    res.redirect(301, '/');
+});
+app.get('/vcs/*splat', (req, res) => {
+    res.redirect(301, '/');
+});
+
 // Join roomId redirect to /join?room=roomId
 app.get('/:roomId', (req, res) => {
     const { roomId } = checkXSS(req.params);

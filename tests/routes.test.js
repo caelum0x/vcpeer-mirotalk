@@ -106,6 +106,15 @@ describe('VCPeer routes', function () {
         body.should.containEql('href="https://share.vcpeer.com"');
         body.should.containEql('href="https://book.vcpeer.com/admin/30min"');
         body.should.containEql('href="https://live.vcpeer.com"');
+        body.should.containEql('href="/launchboard"');
+    });
+
+    it('GET on old VC-investor legacy paths 301s home instead of "joining" them as a room', async () => {
+        for (const legacyPath of ['/vcs/anything', '/fresh-funding', '/tools', '/pricing', '/support']) {
+            const res = await fetch(`${BASE}${legacyPath}`, { redirect: 'manual' });
+            res.status.should.equal(301);
+            res.headers.get('location').should.equal('/');
+        }
     });
 
     it('GET /robots.txt returns 200 text and allows indexing', async () => {
