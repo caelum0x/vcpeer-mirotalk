@@ -1,0 +1,23 @@
+# VCPeer
+
+> VCPeer is a free, no-signup, peer-to-peer video calling and file-sharing site. A call or file transfer is a link — no account, no download, no time limit.
+
+VCPeer gives a room link for peer-to-peer WebRTC video calls with no signup flow, direct browser-to-browser file transfer for sending large files without an account, free scheduling links for booking calls, and live streaming out to Twitch and Kick. It can also be self-hosted with Docker for teams that want to run their own instance.
+
+## Pages
+
+- [Free video call](https://vcpeer.com/free-video-call)
+- [Video call with no time limit](https://vcpeer.com/video-call-no-time-limit)
+- [Get a video call link](https://vcpeer.com/video-call-link)
+- [Free group video call](https://vcpeer.com/group-video-call-free)
+- [Screen share, no signup](https://vcpeer.com/screen-share-no-signup)
+- [Send files (WeTransfer alternative)](https://vcpeer.com/wetransfer-alternative)
+- [Free scheduling link](https://vcpeer.com/free-scheduling-link)
+- [Stream to Twitch and Kick](https://vcpeer.com/stream-to-twitch-and-kick)
+- [Self-hosted alternative (Docker)](https://vcpeer.com/self-hosted-zoom-alternative)
+
+## Optional
+
+- [About](https://vcpeer.com/about)
+- [Privacy](https://vcpeer.com/privacy)
+- [Source code](https://github.com/caelum0x/vcpeer-mirotalk)
