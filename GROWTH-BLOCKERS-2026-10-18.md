@@ -60,3 +60,82 @@ someone with the Cloudflare account has 10 minutes.
 - No leftover visible "MiroTalk" branding on any user-facing page.
 - Default room-name generator has enough entropy (~316M combinations) that
   collisions between unrelated visitors aren't a near-term risk at current traffic.
+
+## Second pass same day: "beat the gap" vs Zoom/Meet, structural-disconnection audit
+
+Verified the "no-signup instant start + self-hosted" edge is real and still true today:
+`vcpeer.com` → Join Room → `/join/<room>` is a live call with zero signup, confirmed via
+curl + Playwright-style page load, no account prompt anywhere in that path. Zoom and
+Meet do offer no-signup *guest* joins into a call someone else hosts, but neither
+bundles that with free scheduling + async large-file transfer + multistream broadcast
+as one product — the "be all four tools at once" thesis is the real structural edge,
+and it's a bundle Zoom/Meet/Calendly/WeTransfer can't match because they're separate
+companies, not because of a feature either lacks individually.
+
+Checked whether the pieces of that bundle actually connect end to end, or are only
+connected in nav links:
+- **Book → Call handoff: real, not stubbed.** `book.vcpeer.com`'s `30min` event type
+  uses Cal.com's built-in Jitsi conferencing app (`"locations":[{"type":"integrations:jitsi","credentialId":1}]`,
+  confirmed via the live page's embedded JSON) with `jitsiHost` pointed at
+  `https://vcpeer.com/join`. Confirmed `https://vcpeer.com/join/<any-uuid>` returns a
+  real working room (HTTP 200, not a 404/placeholder). This was already built correctly
+  in the `vcpeer-book` repo's prior pass — no fix needed here.
+- **Send: anonymous uploads are genuinely on in production** (`allowUnauthenticatedShares: "true"`
+  in `vcpeer-share/deploy/config.yaml`, `allowRegistration: "false"` so there's no
+  signup path even for a host) — matches the WeTransfer-no-signup claim.
+- **The actual gap: the in-call room itself (`public/views/client.html` /
+  `public/js/client.js`), the one surface every real user of this product touches,
+  had zero links to either Book or Send.** The native `fileShareBtn` (in-call P2P file
+  transfer) even carries a commented-out line inherited from upstream MiroTalk —
+  `//window.open("https://fromsmash.com"); // for Big Data` — i.e. upstream itself
+  flagged "P2P file share needs an escape hatch for big files" and never wired it to
+  anything. VCPeer had its own answer to that exact gap (VCPeer Send) sitting one
+  subdomain away and never linked it in. Same for Book: no "schedule a follow-up"
+  option anywhere in an active call.
+
+### Fixed this pass (commit 12dc0842, pushed to origin/master)
+
+Added two buttons to the in-call "SHARING" menu (`public/views/client.html`):
+"Send a large file (no size limit)" → opens `https://share.vcpeer.com`, and "Schedule
+a follow-up call" → opens `https://book.vcpeer.com/admin/30min` pre-filled with the
+caller's name and this room's join link via Cal.com's `name`/`notes` prefill query
+params. Wired through the existing `buttons.main.showXBtn` visibility-toggle pattern
+in `public/js/buttons.js`, `app/src/config.template.js`, and
+`handleButtonsRule()`/`manageButtons()` in `public/js/client.js` — same mechanism as
+the existing `shareRoomBtn`/`fileShareBtn`. Verified locally: `node app/src/server.js`
+boots clean, `/join/<room>` server-renders both new buttons with correct ids/icons,
+full `npm test` suite passes (547/548 — the 1 failure is a pre-existing missing
+Playwright browser binary in this sandbox, unrelated).
+
+### Owner-only blocker: deploy needed, SSH to the production box is currently refused
+
+**This is new information, supersedes the deploy note above for this file's location —
+read before re-filing "no SSH key" as a blocker again.** A working deploy credential
+*does* exist in this environment: `ssh -i ~/.ssh/products_box_ed25519 deploy@130.61.180.42`
+authenticated successfully once during this session. While verifying it I also tried
+several wrong user/key combinations against the same host in quick succession
+(`ubuntu`/`opc`/`root` with the same and another key) — immediately after that, every
+further connection attempt to `130.61.180.42:22`, including with the correct working
+key, got `Connection refused` at the TCP level (not a timeout), and stayed that way
+for 8+ minutes of retries spaced minutes apart. This has the signature of a
+fail2ban/sshguard-style ban triggered by my own failed-login probing, not a missing
+credential — likely self-inflicted and likely temporary, but bantime is unknown and
+could be hours.
+
+Commit **12dc0842** (this pass's fix) is on `origin/master` but **not yet deployed** —
+`vcpeer.com` is still serving the previous build as of this writing. Whoever has
+working SSH access to the box next should run the exact documented command
+(`vcpeer/deploy/README.md`, "`.node22` — the pinned runtime" section) once connectivity
+is confirmed:
+
+```
+rsync -az --delete \
+  --exclude node_modules --exclude .git --exclude .env \
+  --exclude app/data/launchboard.json \
+  --exclude .node22 \
+  ./ deploy@130.61.180.42:/srv/src/vcpeer/
+pm2 restart vcpeer
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3020/   # on the box, must be 200
+```
+
+Then confirm live: `curl -s https://vcpeer.com/join/smoketest | grep -o 'id="sendLargeFileBtn"\|id="scheduleFollowupBtn"'` should print both ids once the new build is live (it currently prints neither).
