@@ -134,7 +134,8 @@ async function startSenderFlow(files) {
 
     const signaling = new SignalingClient();
     const peers = new Map(); // peer_id -> PeerSession
-    let sendSessionStarted = false;
+    const startedReceivers = new Set(); // peer_id -> already streaming/streamed to this receiver
+    let activeReceiverCount = 0; // receivers currently being streamed to, N simultaneous receivers per link
 
     signaling.on('addPeer', ({ peer_id, should_create_offer, iceServers }) => {
         if (peers.has(peer_id)) return;
@@ -146,9 +147,10 @@ async function startSenderFlow(files) {
             signaling,
             onDataChannel: ({ channel }) => {
                 const begin = () => {
-                    if (sendSessionStarted) return; // v1: stream to the first receiver only
-                    sendSessionStarted = true;
-                    beginSending(channel, files);
+                    if (startedReceivers.has(peer_id)) return; // this receiver's own data channel only opens once
+                    startedReceivers.add(peer_id);
+                    activeReceiverCount++;
+                    beginSending(channel, files, peer_id, activeReceiverCount);
                 };
                 if (channel.readyState === 'open') begin();
                 else channel.addEventListener('open', begin, { once: true });
@@ -166,8 +168,12 @@ async function startSenderFlow(files) {
     signaling.on('removePeer', ({ peer_id }) => {
         peers.get(peer_id)?.close();
         peers.delete(peer_id);
-        if (sendSessionStarted) {
-            el('sendShareStatusText').textContent = 'The other device disconnected.';
+        if (startedReceivers.has(peer_id)) {
+            activeReceiverCount = Math.max(0, activeReceiverCount - 1);
+            el('sendShareStatusText').textContent =
+                activeReceiverCount > 0
+                    ? `A receiver disconnected. Still sending to ${activeReceiverCount} other${activeReceiverCount === 1 ? '' : 's'}.`
+                    : 'The other device disconnected.';
         }
     });
 
@@ -176,26 +182,51 @@ async function startSenderFlow(files) {
     el('sendCancelBtn').addEventListener('click', () => window.location.reload());
 }
 
-async function beginSending(channel, files) {
+/**
+ * Streams `files` to one receiver's already-open data channel. Safe to call
+ * once per receiver even while other receivers of the same link are already
+ * mid-transfer — each call drives its own independent SendSession, and DOM
+ * row ids are namespaced by peerId so concurrent receivers' progress rows
+ * never collide. For the common single-receiver case (receiverOrdinal === 1)
+ * the rendered list/headline are unchanged from before.
+ * @param {RTCDataChannel} channel
+ * @param {File[]} files
+ * @param {string} peerId this receiver's socket peer id, used to namespace DOM row ids
+ * @param {number} receiverOrdinal 1 for the first receiver to connect, 2 for the second, etc.
+ */
+async function beginSending(channel, files, peerId, receiverOrdinal) {
     showPanel('transfer');
-    el('sendTransferHeadline').textContent = 'Sending…';
     const list = el('sendTransferList');
-    list.innerHTML = '';
+    if (receiverOrdinal === 1) {
+        // First receiver: identical to the pre-multi-receiver behavior.
+        list.innerHTML = '';
+        el('sendTransferHeadline').textContent = 'Sending…';
+    } else {
+        el('sendTransferHeadline').textContent = `Sending to ${receiverOrdinal} receivers…`;
+        const groupLabel = document.createElement('li');
+        groupLabel.className = 'send-receiver-group-label';
+        groupLabel.textContent = `Receiver ${receiverOrdinal}`;
+        list.appendChild(groupLabel);
+    }
+
+    const rowId = (fileId) => (receiverOrdinal === 1 ? fileId : `${peerId}:${fileId}`);
 
     const samplesByFile = new Map();
-    const manifestFiles = files.map((f, i) => ({ id: String(i), name: f.name, size: f.size }));
+    const manifestFiles = files.map((f, i) => ({ id: rowId(String(i)), name: f.name, size: f.size }));
     for (const f of manifestFiles) list.appendChild(renderFileRow(f));
 
     const session = new SendSession({
         channel,
         files,
         onProgress: ({ fileId, sentBytes, totalBytes }) => {
-            if (!samplesByFile.has(fileId)) samplesByFile.set(fileId, []);
-            updateFileRowProgress(list, fileId, sentBytes, totalBytes, samplesByFile.get(fileId));
+            const qualifiedId = rowId(fileId);
+            if (!samplesByFile.has(qualifiedId)) samplesByFile.set(qualifiedId, []);
+            updateFileRowProgress(list, qualifiedId, sentBytes, totalBytes, samplesByFile.get(qualifiedId));
         },
-        onFileSent: (fileId) => markFileRowComplete(list, fileId, { verified: null, fallbackLabel: 'Sent' }),
+        onFileSent: (fileId) => markFileRowComplete(list, rowId(fileId), { verified: null, fallbackLabel: 'Sent' }),
         onDone: () => {
-            el('sendTransferHeadline').textContent = 'All files sent';
+            el('sendTransferHeadline').textContent =
+                receiverOrdinal === 1 ? 'All files sent' : `All files sent to receiver ${receiverOrdinal}`;
         },
     });
 

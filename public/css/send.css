@@ -188,6 +188,17 @@
     background: rgba(255, 255, 255, 0.03);
 }
 
+/* Separates each simultaneous receiver's files when a /send link is shared
+   with more than one person at once (see public/js/send/app.js beginSending). */
+.send-receiver-group-label {
+    margin-top: var(--ds-space-2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.5);
+}
+
 .send-file-icon {
     flex: 0 0 auto;
     width: 36px;

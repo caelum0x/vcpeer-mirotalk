@@ -146,4 +146,75 @@ describe('test-sendE2E', function () {
             await receiverContext.close();
         }
     });
+
+    it('streams the same shared link to two simultaneous receivers (no silent failure for the second one)', async () => {
+        // Smaller file — this test is about connection fan-out, not throughput.
+        const smallFilePath = path.join(downloadDir, 'small.bin');
+        const smallFileBytes = crypto.randomBytes(2 * 1024 * 1024); // 2 MB
+        fs.writeFileSync(smallFilePath, smallFileBytes);
+        const expectedSmallSha256 = crypto.createHash('sha256').update(smallFileBytes).digest('hex');
+
+        const senderContext = await browser.newContext();
+        const receiverContextA = await browser.newContext({ acceptDownloads: true });
+        const receiverContextB = await browser.newContext({ acceptDownloads: true });
+        for (const ctx of [receiverContextA, receiverContextB]) {
+            // eslint-disable-next-line no-await-in-loop -- init scripts must be registered before any page navigates
+            await ctx.addInitScript(() => {
+                // eslint-disable-next-line no-undef
+                delete window.showDirectoryPicker;
+                // eslint-disable-next-line no-undef
+                delete window.showSaveFilePicker;
+            });
+        }
+
+        const senderPage = await senderContext.newPage();
+        const receiverPageA = await receiverContextA.newPage();
+        const receiverPageB = await receiverContextB.newPage();
+
+        try {
+            await senderPage.goto(`${BASE}/send`);
+            await senderPage.setInputFiles('#sendFileInput', smallFilePath);
+
+            await senderPage.waitForSelector('#sendSharePanel:not([hidden])', { timeout: 15000 });
+            const shareLink = await senderPage.inputValue('#sendShareLink');
+
+            // Both receivers open the exact same /send?r=... link, roughly at the
+            // same time — the realistic "shared in a group chat" case.
+            await Promise.all([receiverPageA.goto(shareLink), receiverPageB.goto(shareLink)]);
+
+            await Promise.all([
+                receiverPageA.waitForSelector('#sendManifestPanel:not([hidden])', { timeout: 20000 }),
+                receiverPageB.waitForSelector('#sendManifestPanel:not([hidden])', { timeout: 20000 }),
+            ]);
+
+            await Promise.all([receiverPageA.click('#sendAcceptBtn'), receiverPageB.click('#sendAcceptBtn')]);
+
+            await Promise.all([
+                receiverPageA.waitForSelector('#sendCompletePanel:not([hidden])', { timeout: 60000 }),
+                receiverPageB.waitForSelector('#sendCompletePanel:not([hidden])', { timeout: 60000 }),
+            ]);
+
+            for (const receiverPage of [receiverPageA, receiverPageB]) {
+                // eslint-disable-next-line no-await-in-loop -- sequential download verification per receiver context
+                const verifiedBadge = await receiverPage.$('#sendCompleteList .send-file-badge-verified');
+                (verifiedBadge !== null).should.be.true();
+
+                // eslint-disable-next-line no-await-in-loop
+                const [download] = await Promise.all([
+                    receiverPage.waitForEvent('download', { timeout: 15000 }),
+                    receiverPage.click('#sendCompleteList a[download]'),
+                ]);
+                const downloadedPath = path.join(downloadDir, `downloaded-${Math.random().toString(36).slice(2)}.bin`);
+                // eslint-disable-next-line no-await-in-loop
+                await download.saveAs(downloadedPath);
+                const downloadedBytes = fs.readFileSync(downloadedPath);
+                const actualSha256 = crypto.createHash('sha256').update(downloadedBytes).digest('hex');
+                actualSha256.should.equal(expectedSmallSha256);
+            }
+        } finally {
+            await senderContext.close();
+            await receiverContextA.close();
+            await receiverContextB.close();
+        }
+    });
 });
