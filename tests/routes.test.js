@@ -68,6 +68,7 @@ describe('VCPeer routes', function () {
         { route: '/free-scheduling-link', titleContains: 'Free Scheduling Link' },
         { route: '/stream-to-twitch-and-kick', titleContains: 'Stream to Twitch and Kick' },
         { route: '/self-hosted-zoom-alternative', titleContains: 'Self-Hosted Zoom Alternative' },
+        { route: '/firefox-send-alternative', titleContains: 'Firefox Send Alternative' },
     ];
 
     seoPages.forEach(({ route, titleContains }) => {
@@ -98,6 +99,7 @@ describe('VCPeer routes', function () {
         body.should.containEql('https://vcpeer.com/free-scheduling-link');
         body.should.containEql('https://vcpeer.com/stream-to-twitch-and-kick');
         body.should.containEql('https://vcpeer.com/self-hosted-zoom-alternative');
+        body.should.containEql('https://vcpeer.com/firefox-send-alternative');
     });
 
     it('GET / includes the suite nav links to every VCPeer tool', async () => {

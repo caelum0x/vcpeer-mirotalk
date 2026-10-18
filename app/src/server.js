@@ -476,6 +476,7 @@ const views = {
     seoFreeSchedulingLink: path.join(__dirname, '../../', 'public/views/seo/free-scheduling-link.html'),
     seoStreamTwitchKick: path.join(__dirname, '../../', 'public/views/seo/stream-to-twitch-and-kick.html'),
     seoSelfHostedZoomAlternative: path.join(__dirname, '../../', 'public/views/seo/self-hosted-zoom-alternative.html'),
+    seoFirefoxSendAlternative: path.join(__dirname, '../../', 'public/views/seo/firefox-send-alternative.html'),
 };
 
 // Branding configuration
@@ -772,6 +773,9 @@ app.get('/stream-to-twitch-and-kick', (req, res) => {
 });
 app.get('/self-hosted-zoom-alternative', (req, res) => {
     res.sendFile(views.seoSelfHostedZoomAlternative);
+});
+app.get('/firefox-send-alternative', (req, res) => {
+    res.sendFile(views.seoFirefoxSendAlternative);
 });
 
 // VCPeer Send — P2P large-file transfer page. Reuses the existing signaling
