@@ -32,6 +32,49 @@
         <meta property="og:image" content="https://vcpeer.com/images/preview.png" />
         <meta property="og:url" content="https://vcpeer.com/send" />
 
+        <!-- https://schema.org/FAQPage -->
+
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "How big can the files be?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "There's no size limit enforced by VCPeer. Files go straight from one browser to the other over a peer-to-peer connection, not through an upload server, so the practical limit is your device's storage and both browsers staying open for the duration of the transfer."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is it private?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes. The file data is never uploaded to or stored on our servers — it streams directly between the sender's and receiver's browsers over an encrypted WebRTC data channel. Our server only helps the two browsers find each other (the same signaling VCPeer already uses for video calls)."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Does the receiver need an account?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "No. Opening the link or entering the 6-digit code is all that's required."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "What happens if I close the tab?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Both the sender's and receiver's tabs need to stay open for the transfer to complete — there's no server in the middle to resume from. If the sender closes their tab, the link expires."
+                        }
+                    }
+                ]
+            }
+        </script>
+
         <!-- StyleSheet -->
 
         <link rel="stylesheet" href="../css/_tokens.css" />
