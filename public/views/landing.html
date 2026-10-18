@@ -18,6 +18,7 @@
             name="description"
             content="Free, peer-to-peer video calls in your browser. No account, no download, no time limit. Screen share, chat, and whiteboard built in."
         />
+        <link rel="canonical" href="{{OG_URL}}" />
 
         <!-- https://ogp.me -->
 
@@ -27,6 +28,26 @@
         <meta property="og:description" content="{{OG_DESCRIPTION}}" />
         <meta property="og:image" content="{{OG_IMAGE}}" />
         <meta property="og:url" content="{{OG_URL}}" />
+
+        <!-- https://schema.org/SoftwareApplication -->
+
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SoftwareApplication",
+                "name": "{{OG_SITE_NAME}}",
+                "applicationCategory": "CommunicationApplication",
+                "operatingSystem": "Web",
+                "url": "{{OG_URL}}",
+                "description": "{{OG_DESCRIPTION}}",
+                "image": "{{OG_IMAGE}}",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "USD"
+                }
+            }
+        </script>
 
         <!-- https://developer.x.com/en/docs/x-for-websites/cards/overview/markup -->
 
