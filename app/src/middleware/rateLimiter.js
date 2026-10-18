@@ -84,10 +84,24 @@ const launchboardSubmitLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// Notify signup: same shape as launchboardSubmitLimiter — unauthenticated
+// POST that writes to disk.
+const notifySubmitLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        message: 'Too many submissions. Please try again in a minute.',
+    },
+    keyGenerator: getClientIP,
+});
+
 module.exports = {
     loginLimiter,
     createRoomTokenLimiter,
     sendCodeLimiter,
     sendCodeResolveLimiter,
     launchboardSubmitLimiter,
+    notifySubmitLimiter,
 };

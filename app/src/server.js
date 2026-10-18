@@ -74,6 +74,8 @@ const RoomPassword = require('./roomPassword');
 const SendCode = require('./sendCode');
 const Launchboard = require('./launchboard');
 const { renderLaunchboardPage } = require('./launchboardView');
+const Notify = require('./notify');
+const { renderNotifyPage } = require('./notifyView');
 const HtmlInjector = require('./htmlInjector');
 const Host = require('./host');
 const Logs = require('./logs');
@@ -94,6 +96,7 @@ const {
     sendCodeLimiter,
     sendCodeResolveLimiter,
     launchboardSubmitLimiter,
+    notifySubmitLimiter,
 } = require('./middleware/rateLimiter');
 
 const port = config.server.port;
@@ -848,6 +851,37 @@ app.post('/launchboard/submit', launchboardSubmitLimiter, (req, res) => {
 // independently verifiable (and reusable by other VCPeer pages/tools later).
 app.get(`${apiBasePath}/launchboard/listings`, (req, res) => {
     res.json({ listings: Launchboard.listAll() });
+});
+
+// Notify — "tell me when VCPeer ships a new self-hosted feature" lead
+// capture. Same unauthenticated-POST-to-disk-file pattern as Launchboard.
+app.get('/notify', (req, res) => {
+    const message = req.query.submitted === '1' ? "You're in — we'll email you when something new ships." : undefined;
+    res.send(
+        renderNotifyPage({
+            signupCount: Notify.count(),
+            message,
+            messageType: message ? 'success' : undefined,
+        })
+    );
+});
+
+app.post('/notify/submit', notifySubmitLimiter, (req, res) => {
+    const fields = checkXSS(req.body || {});
+    const result = Notify.subscribe(fields);
+
+    if (!result.ok) {
+        return res.status(422).send(
+            renderNotifyPage({
+                signupCount: Notify.count(),
+                message: result.error,
+                messageType: 'error',
+                emailValue: fields.email,
+            })
+        );
+    }
+
+    res.redirect(303, '/notify?submitted=1');
 });
 
 // test Stun and Turn connections

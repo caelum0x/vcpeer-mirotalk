@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en" class="no-js">
+    <head>
+        <!-- Title and Icon -->
+
+        <title>Get notified: new self-hosted features | VCPeer</title>
+        <link rel="shortcut icon" href="../images/logo.svg" />
+        <link rel="apple-touch-icon" href="../images/logo.svg" />
+
+        <!-- Meta Information -->
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="darkreader-lock" />
+
+        <meta
+            name="description"
+            content="Get a one-line email when VCPeer ships a new self-hosted feature — docker-compose updates, new endpoints, new deploy options. No spam, no account needed."
+        />
+        <link rel="canonical" href="https://vcpeer.com/notify" />
+
+        <!-- https://ogp.me -->
+
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="VCPeer" />
+        <meta property="og:title" content="Get notified: new self-hosted features" />
+        <meta
+            property="og:description"
+            content="A one-line email when VCPeer ships a new self-hosted feature. No spam, no account needed."
+        />
+        <meta property="og:image" content="https://vcpeer.com/images/preview.png" />
+        <meta property="og:url" content="https://vcpeer.com/notify" />
+
+        <!-- StyleSheet -->
+
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" href="../css/landing.css" />
+        <link rel="stylesheet" href="../css/newcall.css" />
+
+        <!-- JavaScripts -->
+
+        <script async src="../js/stats.js"></script>
+        <script defer src="../js/insights.js"></script>
+
+        <style>
+            .notify-message {
+                border-radius: 6px;
+                padding: 12px 16px;
+                margin-bottom: 24px;
+                font-size: 0.875rem;
+            }
+            .notify-message-success {
+                background: #e6f6ec;
+                color: #1a7f4e;
+                border: 1px solid #b7e4c7;
+            }
+            .notify-message-error {
+                background: #fdecec;
+                color: #b42318;
+                border: 1px solid #f6c6c2;
+            }
+            .notify-form {
+                max-width: 480px;
+                margin: 0 auto 56px;
+                text-align: left;
+            }
+            .notify-form label {
+                display: block;
+                font-size: 0.8rem;
+                font-weight: 600;
+                margin-bottom: 4px;
+                margin-top: 16px;
+            }
+            .notify-form input[type='email'] {
+                width: 100%;
+            }
+        </style>
+    <!-- X conversion tracking base code -->
+    <script>
+    !function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);
+    },s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',
+    a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
+    twq('config','rhhqi');
+    </script>
+    <!-- End X conversion tracking base code -->
+
+    </head>
+    <body class="has-animations">
+        <div class="body-wrap">
+            <header class="site-header reveal-from-top">
+                <div class="container">
+                    <div class="site-header-inner">
+                        <div class="brand">
+                            <div class="m-0">
+                                <a href="/"><img src="../images/logo.svg" alt="VCPeer" width="32" height="32" /></a>
+                            </div>
+                        </div>
+                        <nav id="header-nav" class="header-nav">
+                            <div class="header-nav-inner">
+                                <ul class="list-reset text-xxs">
+                                    <li><a href="/">Call</a></li>
+                                    <li><a href="/send">Send</a></li>
+                                    <li><a href="https://share.vcpeer.com">Share a link</a></li>
+                                    <li><a href="https://book.vcpeer.com/admin/30min">Book</a></li>
+                                    <li><a href="https://live.vcpeer.com">Live</a></li>
+                                    <li><a href="/launchboard">Launchboard</a></li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+            <main class="site-content mt-48">
+                <section class="hero section center-content">
+                    <div class="container">
+                        <div class="hero-inner section-inner">
+                            <div class="container-xs">
+                                <h1 class="mt-0 mb-16 reveal-from-bottom">Get notified: new self-hosted features</h1>
+                                <p class="mt-0 mb-32 reveal-from-bottom">
+                                    VCPeer ships new self-hosted features — new docker-compose options, new
+                                    endpoints, new deploy targets — without any announcement anywhere else. Drop your
+                                    email and we'll send a one-line note when something new lands. No account, no
+                                    spam, unsubscribe link in every email.<!--SIGNUP_COUNT-->
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="container">
+                        <!--TOP_MESSAGE-->
+                        <form class="notify-form" method="post" action="/notify/submit" novalidate>
+                            <label for="notifyEmail">Email</label>
+                            <input
+                                id="notifyEmail"
+                                class="form-input"
+                                type="email"
+                                name="email"
+                                maxlength="254"
+                                placeholder="you@example.com"
+                                required
+                                value="<!--FORM_EMAIL_VALUE-->"
+                            />
+                            <input type="hidden" name="source" value="notify_page" />
+
+                            <p class="mt-24 mb-0">
+                                <button type="submit" class="button button-primary br-6">Notify me</button>
+                            </p>
+                        </form>
+                    </div>
+                </section>
+            </main>
+
+            <footer id="footer" class="site-footer center-content-mobile">
+                <div class="container">
+                    <div class="site-footer-inner">
+                        <div class="footer-top space-between text-xxs">
+                            <div class="brand">
+                                <a href="/"><img src="../images/logo.svg" alt="VCPeer" width="32" height="32" /></a>
+                            </div>
+                        </div>
+                        <div class="footer-bottom space-between text-xxs invert-order-desktop">
+                            <nav class="footer-nav">
+                                <ul class="list-reset">
+                                    <li>
+                                        <a
+                                            href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Source code</a
+                                        >
+                                    </li>
+                                    <li><a href="/privacy">Privacy</a></li>
+                                    <li><a href="mailto:hello@vcpeer.com">Contact</a></li>
+                                </ul>
+                            </nav>
+                            <div class="footer-copyright">&copy; 2026 VCPeer</div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <script defer src="../js/brand.js"></script>
+        <script defer src="../js/landing.js"></script>
+    </body>
+</html>
