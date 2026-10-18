@@ -388,6 +388,13 @@ function wireDropzone() {
             link.select();
         }
     });
+
+    el('sendTelegramBtn').addEventListener('click', () => {
+        const link = el('sendShareLink').value;
+        if (!link) return;
+        const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Sending you a file via VCPeer, no account needed:')}`;
+        window.open(telegramUrl, '_blank', 'noopener,noreferrer');
+    });
 }
 
 async function boot() {
