@@ -7,6 +7,13 @@
         <link id="shortcutIcon" rel="shortcut icon" href="../images/logo.svg" />
         <link id="appleTouchIcon" rel="apple-touch-icon" href="../images/logo.svg" />
 
+        <!-- Preconnect + early-discovered stylesheet for the Lato/Fira Sans webfont
+             (was a blocking @import inside landing.css, which delayed the font fetch
+             by a full extra round-trip and caused a measured 0.337 CLS on this page) -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Sans:600|Lato:400&display=swap" />
+
         <!-- Meta Information -->
 
         <meta charset="utf-8" />

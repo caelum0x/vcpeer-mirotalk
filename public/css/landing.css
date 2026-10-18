@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css?family=Fira+Sans:600|Lato:400&display=swap');
+/* Font loaded via <link rel="stylesheet"> + preconnect in landing.html's <head> instead of
+   @import here — @import blocks CSSOM construction and adds a full extra round-trip before
+   the font URL is even discovered, which was the root cause of a measured 0.337 CLS. */
 
 html {
     line-height: 1.15;
