@@ -209,6 +209,8 @@ const roomEmojiPickerBtn = getId('roomEmojiPickerBtn');
 const whiteboardBtn = getId('whiteboardBtn');
 const snapshotRoomBtn = getId('snapshotRoomBtn');
 const fileShareBtn = getId('fileShareBtn');
+const sendLargeFileBtn = getId('sendLargeFileBtn');
+const scheduleFollowupBtn = getId('scheduleFollowupBtn');
 const documentPiPBtn = getId('documentPiPBtn');
 const openConnectivitySettingsBtn = getId('openConnectivitySettingsBtn');
 const openNetworkSettingsBtn = getId('openNetworkSettingsBtn');
@@ -1868,6 +1870,8 @@ function handleButtonsRule() {
         { element: whiteboardBtn, display: buttons.main.showWhiteboardBtn },
         { element: snapshotRoomBtn, display: buttons.main.showSnapshotRoomBtn && !isMobileDevice },
         { element: fileShareBtn, display: buttons.main.showFileShareBtn },
+        { element: sendLargeFileBtn, display: buttons.main.showSendLargeFileBtn },
+        { element: scheduleFollowupBtn, display: buttons.main.showScheduleFollowupBtn },
         { element: documentPiPBtn, display: showDocumentPipBtn && buttons.main.showDocumentPipBtn },
         { element: mySettingsBtn, display: buttons.main.showMySettingsBtn },
         { element: aboutBtn, display: buttons.main.showAboutBtn },
@@ -7101,6 +7105,8 @@ function manageButtons() {
     setMyWhiteboardBtn();
     setSnapshotRoomBtn();
     setMyFileShareBtn();
+    setSendLargeFileBtn();
+    setScheduleFollowupBtn();
     setDocumentPiPBtn();
     setMySettingsBtn();
     setMySettingsExtraBtns();
@@ -8297,6 +8303,42 @@ function setMyFileShareBtn() {
     });
     receiveHideBtn.addEventListener('click', (e) => {
         hideFileTransfer();
+    });
+}
+
+/**
+ * Open VCPeer Send (share.vcpeer.com) in a new tab.
+ * The native fileShareBtn above only moves files peer-to-peer while both
+ * sides are in this room at the same time, with no guaranteed size ceiling
+ * beyond what the browser/connection can hold in memory. VCPeer Send is the
+ * separate WeTransfer-style product in the suite: an async upload that
+ * produces a link the other side can open any time, no size limit, no
+ * signup. Surfacing it from inside the call (instead of only on the
+ * vcpeer.com marketing nav) is what makes "one suite" real for someone who
+ * is already mid-call and wants to hand off a large file right now.
+ */
+function setSendLargeFileBtn() {
+    if (!sendLargeFileBtn) return;
+    sendLargeFileBtn.addEventListener('click', (e) => {
+        window.open('https://share.vcpeer.com', '_blank', 'noopener,noreferrer');
+    });
+}
+
+/**
+ * Open VCPeer Book (book.vcpeer.com) in a new tab, pre-filled with this
+ * room's join link so the person booking the follow-up doesn't have to
+ * re-explain what the call is about. Cal.com's public booking page accepts
+ * `name` and `notes` as prefill query params.
+ */
+function setScheduleFollowupBtn() {
+    if (!scheduleFollowupBtn) return;
+    scheduleFollowupBtn.addEventListener('click', (e) => {
+        const roomURL = getRoomURL();
+        const notes = `Follow-up to a VCPeer call${roomURL ? ' (' + roomURL + ')' : ''}`;
+        const params = new URLSearchParams();
+        if (myPeerName) params.set('name', myPeerName);
+        params.set('notes', notes);
+        window.open(`https://book.vcpeer.com/admin/30min?${params.toString()}`, '_blank', 'noopener,noreferrer');
     });
 }
 

@@ -23,6 +23,8 @@ let buttons = {
         showWhiteboardBtn: true,
         showSnapshotRoomBtn: true,
         showFileShareBtn: true,
+        showSendLargeFileBtn: true,
+        showScheduleFollowupBtn: true,
         showDocumentPipBtn: true,
         showMySettingsBtn: true,
         showAboutBtn: true, // Please keep me always true, Thank you!

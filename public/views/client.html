@@ -392,7 +392,10 @@
                         aria-labelledby="settingsExtraToggle"
                     >
                         <!-- SHARING -->
-                        <div class="device-menu-header extra-menu-group" data-buttons="shareRoomBtn,fileShareBtn">
+                        <div
+                            class="device-menu-header extra-menu-group"
+                            data-buttons="shareRoomBtn,fileShareBtn,sendLargeFileBtn,scheduleFollowupBtn"
+                        >
                             SHARING
                         </div>
                         <button id="shareRoomBtn" class="app-dropdown-action">
@@ -400,6 +403,12 @@
                         </button>
                         <button id="fileShareBtn" class="app-dropdown-action">
                             <i class="fas fa-folder-open"></i> File sharing
+                        </button>
+                        <button id="sendLargeFileBtn" class="app-dropdown-action">
+                            <i class="fas fa-paper-plane"></i> Send a large file (no size limit)
+                        </button>
+                        <button id="scheduleFollowupBtn" class="app-dropdown-action">
+                            <i class="fas fa-calendar-check"></i> Schedule a follow-up call
                         </button>
 
                         <div class="device-menu-divider extra-menu-divider" data-group="sharing"></div>

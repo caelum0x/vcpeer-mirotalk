@@ -566,6 +566,8 @@ module.exports = {
             showWhiteboardBtn: true,
             showSnapshotRoomBtn: true,
             showFileShareBtn: true,
+            showSendLargeFileBtn: true,
+            showScheduleFollowupBtn: true,
             showDocumentPipBtn: true,
             showAboutBtn: true, // Please keep me always true, Thank you!
         },
