@@ -67,6 +67,7 @@ describe('VCPeer routes', function () {
         { route: '/wetransfer-alternative', titleContains: 'WeTransfer Alternative' },
         { route: '/free-scheduling-link', titleContains: 'Free Scheduling Link' },
         { route: '/stream-to-twitch-and-kick', titleContains: 'Stream to Twitch and Kick' },
+        { route: '/self-hosted-zoom-alternative', titleContains: 'Self-Hosted Zoom Alternative' },
     ];
 
     seoPages.forEach(({ route, titleContains }) => {
@@ -96,6 +97,7 @@ describe('VCPeer routes', function () {
         body.should.containEql('https://vcpeer.com/wetransfer-alternative');
         body.should.containEql('https://vcpeer.com/free-scheduling-link');
         body.should.containEql('https://vcpeer.com/stream-to-twitch-and-kick');
+        body.should.containEql('https://vcpeer.com/self-hosted-zoom-alternative');
     });
 
     it('GET / includes the suite nav links to every VCPeer tool', async () => {
