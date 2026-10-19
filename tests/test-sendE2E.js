@@ -176,6 +176,9 @@ describe('test-sendE2E', function () {
 
         try {
             await senderPage.goto(`${BASE}/send`);
+            // Same mode-tab caveat as the test above: "Send a link" is the
+            // default mode now, this test exercises the live P2P "Send now" flow.
+            await senderPage.click('.send-mode-tab[data-mode="now"]');
             await senderPage.setInputFiles('#sendFileInput', smallFilePath);
 
             await senderPage.waitForSelector('#sendSharePanel:not([hidden])', { timeout: 15000 });
