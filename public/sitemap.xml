@@ -6,11 +6,6 @@
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://vcpeer.com/newcall</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
         <loc>https://vcpeer.com/privacy</loc>
         <changefreq>monthly</changefreq>
         <priority>0.3</priority>
@@ -69,5 +64,15 @@
         <loc>https://vcpeer.com/firefox-send-alternative</loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://vcpeer.com/launchboard</loc>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://vcpeer.com/notify</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.4</priority>
     </url>
 </urlset>
