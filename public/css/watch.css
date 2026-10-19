@@ -1,0 +1,75 @@
+/*
+ * VCPeer Clips — "Record & share" viewer page (/watch/:id) styles.
+ * Built on top of _tokens.css + landing.css (buttons, form-input, layout
+ * primitives are reused from there), same convention as send.css.
+ */
+
+.watch-app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-5);
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.watch-status {
+    text-align: center;
+    padding: var(--ds-space-9) var(--ds-space-5);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.watch-player[hidden],
+.watch-status[hidden] {
+    display: none !important;
+}
+
+.watch-title {
+    margin: 0 0 var(--ds-space-2);
+    font-size: 1.5rem;
+}
+
+.watch-meta {
+    margin: 0 0 var(--ds-space-5);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+.watch-video {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    border-radius: var(--ds-radius-lg);
+    background: #000;
+}
+
+.watch-cta {
+    margin-top: var(--ds-space-6);
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+.watch-cta a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.watch-share-row {
+    display: flex;
+    gap: var(--ds-space-2);
+    align-items: stretch;
+}
+
+.watch-share-row .form-input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--ds-font-mono);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 540px) {
+    .watch-share-row {
+        flex-direction: column;
+    }
+}

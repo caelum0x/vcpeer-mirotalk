@@ -141,6 +141,42 @@ const transferReportLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// VCPeer async "Record & share" clips: creating one declares a size and
+// reserves quota, same shape as transferCreateLimiter but a looser ceiling —
+// recording a clip is a much more common action during a call than sending
+// a large file transfer.
+const clipCreateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many recordings created. Please try again in an hour.' },
+    keyGenerator: getClientIP,
+});
+
+// Chunk uploads: same reasoning as transferChunkLimiter — frequent and
+// expected for any multi-minute recording.
+const clipChunkLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 4000,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many chunk uploads. Please slow down and retry shortly.' },
+    keyGenerator: getClientIP,
+});
+
+// View-count increments on the public /watch/:id page — generous enough for
+// real viewers (including a reload or two), tight enough to bound naive
+// view-count inflation from a single IP.
+const clipViewLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
 module.exports = {
     loginLimiter,
     createRoomTokenLimiter,
@@ -152,4 +188,7 @@ module.exports = {
     transferChunkLimiter,
     transferEmailVerifyLimiter,
     transferReportLimiter,
+    clipCreateLimiter,
+    clipChunkLimiter,
+    clipViewLimiter,
 };

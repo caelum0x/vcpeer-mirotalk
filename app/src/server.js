@@ -99,6 +99,7 @@ const {
     notifySubmitLimiter,
 } = require('./middleware/rateLimiter');
 const { initTransfers } = require('./transfers');
+const { initClips } = require('./clips');
 
 const port = config.server.port;
 const host = config.server.host;
@@ -466,6 +467,8 @@ const views = {
     waitingRoom: path.join(__dirname, '../../', 'public/views/waitingRoom.html'),
     // VCPeer Send — P2P large-file transfer, see plans/vcpeer.md "Shipped 2026-10-14: VCPeer Send"
     send: path.join(__dirname, '../../', 'public/views/send.html'),
+    // VCPeer Clips — async "Record & share" viewer page (Loom-style), see app/src/clips/
+    watch: path.join(__dirname, '../../', 'public/views/watch.html'),
     // SEO landing pages (static, matching researched query clusters, see
     // plans/vcpeer-build-2026-10-14.md "SEO pages" section)
     seoFreeVideoCall: path.join(__dirname, '../../', 'public/views/seo/free-video-call.html'),
@@ -897,6 +900,17 @@ app.post('/notify/submit', notifySubmitLimiter, (req, res) => {
 // VCPeer share suite".
 const transfers = initTransfers(config);
 app.use(`${apiBasePath}/transfers`, transfers.router);
+
+// VCPeer Clips — async "Record & share": record once (in-room recording
+// button, solo or with others), upload, get a /watch/:id link the viewer
+// plays back on their own time with a view counter. Fills the Loom-shaped
+// gap in VCPeer's live-call-only recording (which previously only offered a
+// local download). See app/src/clips/.
+const clips = initClips(config);
+app.use(`${apiBasePath}/clips`, clips.router);
+app.get('/watch/:id', (req, res) => {
+    res.sendFile(views.watch);
+});
 
 // test Stun and Turn connections
 app.get(['/icetest'], (req, res) => {

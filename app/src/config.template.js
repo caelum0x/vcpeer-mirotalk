@@ -672,6 +672,34 @@ module.exports = {
     },
 
     // ==========================================
+    // VCPeer Clips — "Record & share" (Loom-style async recording)
+    // ==========================================
+    // Record once (solo or with others, from the in-room recording button),
+    // upload, get a shareable /watch/:id link — the viewer plays it back
+    // whenever they want, no call, no signup. Encrypted at rest with a
+    // server-managed AES-256-GCM key, same model as VCPeer Send above (NOT
+    // end-to-end — the server can decrypt to serve video/range requests).
+    clips: {
+        storageDriver: process.env.CLIPS_STORAGE_DRIVER || 'local',
+        dataDir: process.env.CLIPS_DATA_DIR || path.join(__dirname, 'data', 'clips'),
+        chunkBytes: Number(process.env.CLIPS_CHUNK_BYTES) || 4 * 1024 * 1024, // 4 MiB
+        maxClipBytes: Number(process.env.CLIPS_MAX_BYTES) || 1 * 1024 * 1024 * 1024, // 1 GiB cap per recording
+        dailyIpQuotaBytes: Number(process.env.CLIPS_DAILY_IP_QUOTA_BYTES) || 5 * 1024 * 1024 * 1024, // 5 GiB/day/IP
+        defaultExpiryDays: Number(process.env.CLIPS_DEFAULT_EXPIRY_DAYS) || 30,
+        cleanupIntervalMs: Number(process.env.CLIPS_CLEANUP_INTERVAL_MS) || 15 * 60 * 1000,
+        r2: {
+            // Reuses the same R2 bucket/credentials as VCPeer Send when set — no
+            // need to provision a second bucket just for clips.
+            accountId: process.env.R2_ACCOUNT_ID || '',
+            accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+            bucket: process.env.CLIPS_R2_BUCKET || process.env.R2_BUCKET || '',
+            endpoint: process.env.R2_ENDPOINT || '',
+            region: process.env.R2_REGION || 'auto',
+        },
+    },
+
+    // ==========================================
     // Mail (Scribase Mail / Resend-compatible API)
     // ==========================================
     // Used only by VCPeer Send's "Send by email" delivery mode and sender-email

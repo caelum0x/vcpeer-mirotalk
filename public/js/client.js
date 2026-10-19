@@ -11551,6 +11551,89 @@ async function downloadRecordedStream() {
     } else {
         await saveBlobToFile(finalBlob, recFileName);
     }
+
+    // Local download above is unaffected either way — this just also offers
+    // an async "Record & share" link (Loom-style: upload once, send the
+    // link, the viewer watches it later on their own time, no call/signup).
+    if (!isLeavingRoom) appendShareClipButton(finalBlob, recFileName);
+}
+
+/**
+ * Adds a "Get shareable link" button next to the last-recording info panel
+ * (see downloadRecordedStream above), wired to VCPeer's async "Record &
+ * share" clips feature (app/src/clips/).
+ * @param {Blob} blob the finished recording
+ * @param {string} fileName used to build the clip's default title
+ */
+function appendShareClipButton(blob, fileName) {
+    try {
+        if (typeof lastRecordingInfo?.appendChild !== 'function') return;
+        const shareBtn = document.createElement('button');
+        shareBtn.className = 'buttons';
+        shareBtn.innerHTML = '<i class="fas fa-link"></i><p>Get shareable link</p>';
+        if (typeof shareBtn.addEventListener === 'function') {
+            shareBtn.addEventListener('click', () => handleShareRecordingAsClip(blob, fileName, shareBtn));
+        }
+        lastRecordingInfo.appendChild(shareBtn);
+    } catch (err) {
+        // Never let the "get a link" add-on affect the core recording-save
+        // flow (local download already succeeded by the time this runs).
+        console.warn('Could not add "Get shareable link" button', err);
+    }
+}
+
+/**
+ * Uploads a finished recording to VCPeer's clips backend and surfaces the
+ * resulting /watch/:id link to the user (copies it to the clipboard when
+ * possible, always shows it in a dialog as a fallback).
+ * @param {Blob} blob
+ * @param {string} fileName
+ * @param {HTMLButtonElement} button
+ */
+async function handleShareRecordingAsClip(blob, fileName, button) {
+    button.disabled = true;
+    const label = button.querySelector('p');
+    const originalLabel = label.innerText;
+    label.innerText = 'Uploading…';
+    try {
+        const { shareRecordingAsClip } = await import('/js/clips/clip-client.js');
+        const title = `${roomId || 'VCPeer'} recording — ${fileName}`;
+        const { shareUrl } = await shareRecordingAsClip({
+            blob,
+            title,
+            onProgress: (sent, total) => {
+                label.innerText = total ? `Uploading… ${Math.round((sent / total) * 100)}%` : 'Uploading…';
+            },
+        });
+
+        let copied = false;
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            copied = true;
+        } catch {
+            // clipboard API unavailable/blocked (e.g. insecure context, permissions) —
+            // the link is still shown below, so this is just a convenience miss.
+        }
+        label.innerText = copied ? 'Link copied!' : 'Link ready';
+
+        msgHTML(
+            null,
+            null,
+            'Shareable link ready',
+            `<div style="text-align: left;">
+                Anyone with this link can watch the recording whenever they want — no call or signup needed:
+                <br/><br/>
+                <a href="${shareUrl}" target="_blank" rel="noopener">${shareUrl}</a>
+            </div>`,
+            'top'
+        );
+    } catch (err) {
+        console.error('shareRecordingAsClip failed', err);
+        label.innerText = originalLabel;
+        userLog('error', 'Could not create a shareable link for this recording. Please try again.', 'top-end');
+    } finally {
+        button.disabled = false;
+    }
 }
 
 /**

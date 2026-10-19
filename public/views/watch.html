@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en" class="no-js">
+    <head>
+        <!-- Title and Icon -->
+
+        <title>Recording — VCPeer</title>
+        <link rel="shortcut icon" href="../images/logo.svg" />
+        <link rel="apple-touch-icon" href="../images/logo.svg" />
+
+        <!-- Meta Information -->
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="darkreader-lock" />
+        <meta name="robots" content="noindex" />
+
+        <meta
+            name="description"
+            content="Watch a recording shared via VCPeer — record once, share a link, the viewer watches it whenever they want. No call, no signup."
+        />
+
+        <!-- StyleSheet -->
+
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" href="../css/landing.css" />
+        <link rel="stylesheet" href="../css/watch.css" />
+
+        <!-- JavaScripts -->
+
+        <script async src="../js/stats.js"></script>
+        <script defer src="../js/insights.js"></script>
+    </head>
+    <body class="has-animations">
+        <div class="body-wrap">
+            <header class="site-header reveal-from-top">
+                <div class="container">
+                    <div class="site-header-inner">
+                        <div class="brand">
+                            <div class="m-0">
+                                <a href="/">
+                                    <img src="../images/logo.svg" alt="VCPeer" width="32" height="32" />
+                                </a>
+                            </div>
+                        </div>
+                        <nav id="header-nav" class="header-nav">
+                            <div class="header-nav-inner">
+                                <ul class="list-reset text-xxs">
+                                    <li><a href="/">Call</a></li>
+                                    <li><a href="/send">Send</a></li>
+                                    <li><a href="https://book.vcpeer.com/admin/30min">Book</a></li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+
+            <main class="site-content mt-48">
+                <section class="section watch-section">
+                    <div class="container">
+                        <div class="watch-app">
+                            <!-- Loading state -->
+                            <div id="watchLoading" class="watch-status">Loading recording…</div>
+
+                            <!-- Error / gone / expired state -->
+                            <div id="watchError" class="watch-status" hidden>
+                                This recording is invalid, expired, or has been deleted.
+                            </div>
+
+                            <!-- Player -->
+                            <div id="watchPlayer" class="watch-player" hidden>
+                                <h1 class="watch-title" id="watchTitle">Recording</h1>
+                                <p class="watch-meta">
+                                    <span id="watchViewCount">0 views</span>
+                                    <span aria-hidden="true"> · </span>
+                                    <span id="watchDate"></span>
+                                </p>
+
+                                <video id="watchVideo" class="watch-video" controls playsinline preload="metadata">
+                                    Your browser doesn't support video playback.
+                                </video>
+
+                                <div class="watch-share-row mt-24">
+                                    <input
+                                        id="watchShareUrl"
+                                        class="form-input"
+                                        type="text"
+                                        readonly
+                                        aria-label="Shareable link"
+                                    />
+                                    <button type="button" id="watchCopyBtn" class="button button-primary br-6">
+                                        Copy link
+                                    </button>
+                                </div>
+
+                                <p class="watch-cta">
+                                    Recorded with VCPeer — record your own async clips free, no signup.
+                                    <a href="/">Start a call</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer id="footer" class="site-footer center-content-mobile">
+                <div class="container">
+                    <div class="site-footer-inner">
+                        <div class="footer-bottom space-between text-xxs invert-order-desktop">
+                            <nav class="footer-nav">
+                                <ul class="list-reset">
+                                    <li>
+                                        <a
+                                            href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Source code</a
+                                        >
+                                    </li>
+                                    <li><a href="/privacy">Privacy</a></li>
+                                    <li><a href="mailto:hello@vcpeer.com">Contact</a></li>
+                                </ul>
+                            </nav>
+                            <div class="footer-copyright">&copy; 2026 VCPeer</div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <script type="module" src="../js/clips/watch.js"></script>
+    </body>
+</html>
