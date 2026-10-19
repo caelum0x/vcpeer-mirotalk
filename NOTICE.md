@@ -46,3 +46,32 @@ elsewhere in this project — see `public/views/customizeRoom.html`,
   SHA-256 for the optional per-file integrity check.
 - [qrcodejs](https://github.com/davidshimjs/qrcodejs) — MIT License — QR code
   rendering for the share link.
+
+## VCPeer Send: "Send a link" (WeTransfer-style upload-and-share)
+
+Added 2026-10-14 alongside the live P2P "Send now" mode above. Original VCPeer
+code — no code was copied from any third-party project.
+
+Scope note for anyone reading the planning history: this feature's brief
+originally named two reference projects — PairDrop (GPL-3.0) for a "Nearby
+devices on the same network" panel, and timvisee/send (MPL-2.0) for a
+fragment-key, zero-knowledge-encrypted link approach. The owner changed scope
+before any code was written against either: the "Nearby" panel was dropped
+entirely, and "Send a link" shipped instead as a direct WeTransfer clone —
+files are uploaded to and decryptable by this server (encrypted at rest with
+a server-held key, not end-to-end), which is what lets it generate zip
+downloads and image/video/PDF previews. Because neither reference project's
+code or core architecture was used, **no PairDrop or timvisee/send credit
+applies here** — flagging this explicitly so the absence reads as a deliberate
+decision, not an oversight.
+
+New npm dependencies, both used server-side only (`app/src/transfers/`,
+`app/src/storage/`):
+
+- [archiver](https://github.com/archiverjs/node-archiver) — MIT License —
+  streams the "Download all (.zip)" response without buffering the whole
+  archive in memory.
+- [aws4](https://github.com/mhart/aws4) — MIT License — signs the Cloudflare
+  R2 (S3-compatible) requests used by the optional `R2Storage` backend
+  (`SEND_LINK_STORAGE_DRIVER=r2`) with AWS Signature V4, without pulling in
+  the much larger `@aws-sdk/client-s3`.

@@ -23,6 +23,20 @@
     display: none;
 }
 
+/* Several elements on this page (.button, .button-block, .send-file-list,
+   .send-share-row, .send-mode-tabs, ...) set their own `display` and are
+   also toggled via the plain `hidden` attribute from JS. An authored
+   `display` rule beats the user-agent default `[hidden] { display: none }`
+   at equal specificity if it's declared later in the cascade — which several
+   of landing.css's rules are relative to the base `[hidden]` default. One
+   blanket, always-last override keeps every current and future `hidden`
+   toggle inside this page actually hidden, instead of patching each class
+   individually. */
+.send-app [hidden],
+.send-mode-tabs[hidden] {
+    display: none !important;
+}
+
 /* Dropzone */
 
 .send-dropzone {
@@ -358,4 +372,188 @@
 .send-app-section.section,
 .send-app-section .section-inner {
     padding-top: 0;
+}
+
+/* ============================================================== */
+/* Mode switch + "Send a link" (WeTransfer-style upload-and-share) */
+/* ============================================================== */
+
+.send-mode-tabs,
+.send-delivery-tabs {
+    display: flex;
+    gap: var(--ds-space-2);
+    margin-bottom: var(--ds-space-5);
+}
+
+.send-mode-tabs[hidden] {
+    display: none;
+}
+
+.send-mode-tab {
+    flex: 1;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ds-radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.72);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition:
+        border-color var(--ds-duration-base) var(--ds-ease-out),
+        background var(--ds-duration-base) var(--ds-ease-out),
+        color var(--ds-duration-base) var(--ds-ease-out);
+}
+
+.send-mode-tab.is-active {
+    border-color: var(--ds-brand-500);
+    background: rgba(70, 120, 249, 0.14);
+    color: #fff;
+}
+
+.send-folder-link {
+    display: block;
+    margin: var(--ds-space-3) auto 0;
+    background: none;
+    border: none;
+    color: var(--ds-brand-300);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.send-total-bar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+}
+
+.send-total-bar[hidden] {
+    display: none;
+}
+
+.send-total-bar-track {
+    height: 8px;
+    border-radius: var(--ds-radius-full);
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.send-total-bar-fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: var(--ds-brand-500);
+    border-radius: var(--ds-radius-full);
+    transition: width var(--ds-duration-fast) linear;
+}
+
+.send-total-bar span:last-child {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.85rem;
+}
+
+.send-link-form[hidden] {
+    display: none;
+}
+
+.send-field-label {
+    display: block;
+    margin-top: var(--ds-space-4);
+    margin-bottom: var(--ds-space-2);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.send-field-label:first-child {
+    margin-top: 0;
+}
+
+.send-field-label select.form-input {
+    display: block;
+    margin-top: var(--ds-space-2);
+    width: 100%;
+}
+
+.send-options-row {
+    display: flex;
+    gap: var(--ds-space-4);
+    margin-top: var(--ds-space-4);
+}
+
+.send-options-row .send-field-label {
+    flex: 1;
+    margin-top: 0;
+}
+
+.send-link-error {
+    color: var(--ds-danger);
+    font-size: 0.85rem;
+    margin: var(--ds-space-3) 0 0;
+}
+
+.send-link-error[hidden] {
+    display: none;
+}
+
+.send-status-line {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.9rem;
+}
+
+.send-link-file-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+}
+
+.send-link-file-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--ds-radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    flex-wrap: wrap;
+}
+
+.send-link-preview {
+    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: var(--ds-radius-sm);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.send-link-preview-pdf {
+    width: 96px;
+    height: 64px;
+    border: none;
+}
+
+.send-report-line {
+    text-align: center;
+}
+
+.send-report-link {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    .send-mode-tabs,
+    .send-delivery-tabs,
+    .send-options-row {
+        flex-direction: column;
+    }
 }

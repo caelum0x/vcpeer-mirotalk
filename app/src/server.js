@@ -98,6 +98,7 @@ const {
     launchboardSubmitLimiter,
     notifySubmitLimiter,
 } = require('./middleware/rateLimiter');
+const { initTransfers } = require('./transfers');
 
 const port = config.server.port;
 const host = config.server.host;
@@ -889,6 +890,13 @@ app.post('/notify/submit', notifySubmitLimiter, (req, res) => {
 
     res.redirect(303, '/notify?submitted=1');
 });
+
+// VCPeer Send "Send a link" — WeTransfer-style upload-and-share, encrypted at
+// rest, a storage-backed secondary mode alongside the live P2P "Send now"
+// above. See app/src/transfers/index.js and plans/vcpeer.md "Built 2026-10-14:
+// VCPeer share suite".
+const transfers = initTransfers(config);
+app.use(`${apiBasePath}/transfers`, transfers.router);
 
 // test Stun and Turn connections
 app.get(['/icetest'], (req, res) => {
