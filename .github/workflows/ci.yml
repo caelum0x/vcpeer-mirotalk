@@ -28,7 +28,16 @@ jobs:
         run: cp app/src/config.template.js app/src/config.js
 
       - name: Run unit tests
+        # JWT_KEY has no default — app/src/jwtSecret.js throws at startup
+        # without one (see config.template.js's "Required" comment on
+        # config.jwt.key) — so every test that spawns the real server
+        # (test-sendRoute, test-sendE2E, test-sendLinkE2E, test-launchboardRoute,
+        # test-notifyRoute, ...) was failing its "before all" hook with
+        # "Server did not become ready in time" long before this workflow's
+        # push-trigger gap was fixed. CI-only throwaway value, never a real secret.
         run: npm test
+        env:
+          JWT_KEY: ci-only-throwaway-secret-not-used-anywhere-real-00000000
 
   # The upstream "build" job (Docker Buildx -> push to Docker Hub
   # mirotalk/p2p:latest) was inherited as-is from the mirotalk/p2p fork point
