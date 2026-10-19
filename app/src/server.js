@@ -712,6 +712,8 @@ app.get('/', OIDCAuth, (req, res) => {
 
 // set new room name and join
 app.get('/newcall', OIDCAuth, (req, res) => {
+    // Every /newcall response is a unique, disposable room-setup page — never let it be indexed.
+    res.set('X-Robots-Tag', 'noindex, nofollow');
     if (!OIDC.enabled && hostCfg.protected) {
         hostCfg.authenticated = false;
         res.redirect('/login');
@@ -964,6 +966,8 @@ app.get('/oidcIdentity', (req, res) => {
 
 // Handle Direct join room with params
 app.get('/join/', async (req, res) => {
+    // Any room page is unique/disposable, user-named, and endlessly guessable — never indexable.
+    res.set('X-Robots-Tag', 'noindex, nofollow');
     if (Object.keys(req.query).length > 0) {
         log.debug('Request Query', req.query);
         /* 
@@ -1048,6 +1052,9 @@ app.get('/join/', async (req, res) => {
 
 // Join Room by id
 app.get('/join/:roomId', function (req, res) {
+    // Random/guessable room names were getting indexed (e.g. /join/stages, /join/gtm) —
+    // a room page is never a page that should rank, so it's never indexable.
+    res.set('X-Robots-Tag', 'noindex, nofollow');
     //
     const { roomId } = req.params;
 
