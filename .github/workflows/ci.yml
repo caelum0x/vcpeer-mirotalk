@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch: {}
 
 jobs:
   test:
@@ -20,36 +21,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Create config from template
         run: cp app/src/config.template.js app/src/config.js
 
       - name: Run unit tests
         run: npm test
 
-  build:
-    runs-on: ubuntu-22.04 # LTS
-    needs: test  # This ensures the build job only runs if the test job succeeds
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
-
-      - name: Build and publish
-        uses: docker/build-push-action@v6
-        with:
-          context: ./
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: mirotalk/p2p:latest
+  # The upstream "build" job (Docker Buildx -> push to Docker Hub
+  # mirotalk/p2p:latest) was inherited as-is from the mirotalk/p2p fork point
+  # and never adapted: VCPeer doesn't deploy via Docker Hub (see
+  # deploy/README.md — plain `git clone` + npm install + pm2 on the Oracle
+  # box), this fork has no DOCKERHUB_USERNAME/DOCKERHUB_ACCESS_TOKEN secrets,
+  # and mirotalk/p2p isn't a namespace this repo can push to anyway. Dropped
+  # rather than left to fail on every push.
