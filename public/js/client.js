@@ -2237,7 +2237,7 @@ async function whoAreYou() {
         position: 'center',
         input: 'text',
         inputLabel: 'Display name',
-        inputPlaceholder: 'Enter your email or name',
+        inputPlaceholder: 'Enter your name',
         inputAttributes: { maxlength: 254, id: 'usernameInput', ...(oidcIdentity.name && { readonly: 'true' }) },
         inputValue: window.localStorage.peer_name ? window.localStorage.peer_name : '',
         html: initUser, // inject html
@@ -2258,7 +2258,7 @@ async function whoAreYou() {
         },
         inputValidator: async (value) => {
             if (oidcIdentity.name) value = oidcIdentity.name;
-            if (!value) return 'Please enter your email or name';
+            if (!value) return 'Please enter your name';
 
             // Long email or name
             const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
