@@ -70,6 +70,7 @@ class TransferStore {
             id,
             createdAt: Date.now(),
             downloadCount: 0,
+            downloadedFileIds: [],
             status: 'uploading',
             firstDownloadNotified: false,
             reports: 0,

@@ -236,6 +236,45 @@ describe('test-transferRoutes', function () {
         statuses.filter((s) => s === 404 || s === 410).length.should.equal(1);
     });
 
+    it('BUG: maxDownloads=1 on a multi-file transfer must allow the recipient to download EVERY file once, not just the first', async () => {
+        ctx = await startTestServer();
+        const created = await json(`${ctx.base}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                files: [
+                    { name: 'a.txt', size: 5, type: 'text/plain' },
+                    { name: 'b.txt', size: 5, type: 'text/plain' },
+                ],
+                delivery: 'link',
+                maxDownloads: 1,
+            }),
+        });
+        const { id, files } = created.body;
+        for (const f of files) {
+            await fetch(`${ctx.base}/${id}/files/${f.fileId}/chunks/1`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: Buffer.from('hello'),
+            });
+        }
+        await json(`${ctx.base}/${id}/finalize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+        });
+
+        // A sender who set "allow 1 download" expects the recipient to be able
+        // to fetch ALL of their files once, whether via "Download all" (zip)
+        // or by clicking each file's own Download button — not have the link
+        // die after the very first file.
+        const first = await fetch(`${ctx.base}/${id}/files/${files[0].fileId}/download`);
+        first.status.should.equal(200);
+
+        const second = await fetch(`${ctx.base}/${id}/files/${files[1].fileId}/download`);
+        second.status.should.equal(200);
+    });
+
     it('rejects a transfer whose total size exceeds maxTransferBytes', async () => {
         ctx = await startTestServer({ configOverrides: { maxTransferBytes: 100 } });
         const result = await json(`${ctx.base}`, {

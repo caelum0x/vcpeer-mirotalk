@@ -383,7 +383,7 @@ function createTransferRoutes({ config, store, storage, ipQuota, emailQuota, ema
         const file = record.files.find((f) => f.fileId === req.params.fileId);
         if (!file) return res.status(404).json({ message: 'File not found' });
 
-        const gate = gateDownload(store, record.id);
+        const gate = gateDownload(store, record.id, file.fileId);
         if (!gate.allowed) return res.status(410).json({ message: 'Download limit reached for this transfer.' });
 
         if (gate.shouldNotifyFirstDownload) notifyFirstDownload(record, sendMail, log);
@@ -499,23 +499,53 @@ function createTransferRoutes({ config, store, storage, ipQuota, emailQuota, ema
  * concurrent download requests can't both slip in under a limit of 1. Also
  * flips `firstDownloadNotified` in the same update so the "your transfer was
  * downloaded" email can never fire twice, even under concurrent requests.
+ *
+ * A transfer's files can be fetched two ways: one `/zip` request (the whole
+ * set in one call), or one `/files/:fileId/download` request per file (the
+ * per-file "Download" buttons on a multi-file transfer). `maxDownloads` is a
+ * sender-facing "how many times may this transfer be retrieved" limit, not a
+ * per-HTTP-request counter — so a `/zip` call always completes a full
+ * "download", while a per-file call only completes one once every distinct
+ * file in the transfer has been fetched at least once in the current
+ * allotment (`downloadedFileIds`, reset once the allotment is spent). Without
+ * this, `maxDownloads: 1` on a multi-file transfer would let the recipient
+ * grab only the first file they clicked and 410/404 on the rest, even though
+ * they never actually got all their files.
+ *
  * @param {import('./transferStore').TransferStore} store
  * @param {string} id
+ * @param {string|null} [fileId] the file being fetched, or null for a /zip request (always a full pass)
  * @returns {{ allowed: boolean, shouldNotifyFirstDownload: boolean }}
  */
-function gateDownload(store, id) {
+function gateDownload(store, id, fileId = null) {
     let allowed = true;
     let shouldNotifyFirstDownload = false;
     store.update(id, (t) => {
-        if (t.maxDownloads != null && t.downloadCount >= t.maxDownloads) {
+        const downloadedFileIds = new Set(t.downloadedFileIds || []);
+        const alreadyInThisAllotment = fileId != null && downloadedFileIds.has(fileId);
+
+        if (!alreadyInThisAllotment && t.maxDownloads != null && t.downloadCount >= t.maxDownloads) {
             allowed = false;
             return t;
         }
+
+        if (fileId != null) downloadedFileIds.add(fileId);
+
+        const allFileIds = (t.files || []).map((f) => f.fileId);
+        const completesAllotment = fileId == null || allFileIds.every((id_) => downloadedFileIds.has(id_));
+
+        if (!completesAllotment) {
+            // Partway through fetching a multi-file transfer's files one by one:
+            // remember progress, but don't spend a download yet.
+            return { ...t, downloadedFileIds: Array.from(downloadedFileIds) };
+        }
+
         shouldNotifyFirstDownload =
             t.downloadCount === 0 && t.delivery === 'email' && !!t.senderEmail && !t.firstDownloadNotified;
         return {
             ...t,
             downloadCount: t.downloadCount + 1,
+            downloadedFileIds: [],
             firstDownloadNotified: t.firstDownloadNotified || shouldNotifyFirstDownload,
         };
     });
