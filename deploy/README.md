@@ -96,23 +96,34 @@ package.json, README.md) to match if that happens.
       shows a page view within a minute
     - `/launchboard` returns 200 and `/api/v1/launchboard/listings` returns real JSON
 
-## Launchboard data file — never overwrite on redeploy
+## Launchboard/Notify data files and local-disk upload storage — never overwrite on redeploy
 
-Launchboard submissions persist to `app/data/launchboard.json` on the box (no DB is
-wired into this fork — see `app/src/launchboard.js`). The live box is a plain rsync'd
-directory, not a git checkout, so any redeploy command MUST exclude that file or every
-real founder submission is lost on the next push:
+Launchboard submissions persist to `app/data/launchboard.json` and Notify signups to
+`app/data/notify.json` on the box (no DB is wired into this fork — see
+`app/src/launchboard.js` / `app/src/notify.js`). VCPeer Send transfers and VCPeer Clips
+recordings, when `*_STORAGE_DRIVER` is left at its default `local` (no R2 bucket
+configured), persist encrypted blobs + metadata under `app/src/data/transfers/` and
+`app/src/data/clips/` respectively. The live box is a plain rsync'd directory, not a
+git checkout, so any redeploy command MUST exclude all four of these or real user data
+(founder submissions, notify signups, in-flight/shared Send transfers, Clips recordings)
+is lost on the next push:
 
 ```
 rsync -az --delete \
   --exclude node_modules --exclude .git --exclude .env \
   --exclude app/data/launchboard.json \
+  --exclude app/data/notify.json \
+  --exclude app/src/data/transfers \
+  --exclude app/src/data/clips \
   ./ deploy@130.61.180.42:/srv/src/vcpeer/
 pm2 restart vcpeer
 ```
 
-`LAUNCHBOARD_DATA_DIR` env var can point this at a path outside the synced tree
-entirely if that's ever preferred.
+`LAUNCHBOARD_DATA_DIR`/`NOTIFY_DATA_DIR`/`SEND_LINK_DATA_DIR`/`CLIPS_DATA_DIR` env vars
+can point these at paths outside the synced tree entirely if that's ever preferred
+(or switch `SEND_LINK_STORAGE_DRIVER`/`CLIPS_STORAGE_DRIVER` to `r2` once a bucket is
+provisioned, which removes this risk for Send/Clips entirely since blobs then live in
+R2, not on the box's local disk).
 
 ## `.node22` — the pinned runtime, also never overwrite on redeploy
 
@@ -130,6 +141,9 @@ smoke test). **Always exclude it:**
 rsync -az --delete \
   --exclude node_modules --exclude .git --exclude .env \
   --exclude app/data/launchboard.json \
+  --exclude app/data/notify.json \
+  --exclude app/src/data/transfers \
+  --exclude app/src/data/clips \
   --exclude .node22 \
   ./ deploy@130.61.180.42:/srv/src/vcpeer/
 pm2 restart vcpeer

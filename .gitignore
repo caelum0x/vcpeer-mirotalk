@@ -20,6 +20,9 @@ config.js
 
 # VCPeer Send "Send a link" storage (local-disk driver) — encrypted blobs + metadata
 app/src/data/transfers/
+
+# VCPeer Clips "Record & share" storage (local-disk driver) — encrypted blobs + metadata
+app/src/data/clips/
 docker-push.sh
 docker-compose.yml
 turnserver.conf
@@ -32,6 +35,7 @@ env.txt
 deploy/.env.insights
 deploy/.env.production
 
-# Launchboard submissions (real user data, never commit or let a redeploy
-# overwrite it — see deploy/README.md)
+# Launchboard submissions and Notify signups (real user data, never commit or
+# let a redeploy overwrite them — see deploy/README.md)
 app/data/launchboard.json
+app/data/notify.json
