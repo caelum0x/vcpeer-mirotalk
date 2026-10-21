@@ -177,6 +177,31 @@ const clipViewLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// VCPeer Coworker: each message triggers a relay/LLM call, so cap it tighter
+// than a cheap read-only endpoint — generous enough for a real conversation,
+// tight enough to bound a single IP from burning the shared free relay quota.
+const coworkerMessageLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many messages. Please slow down and try again shortly.' },
+    keyGenerator: getClientIP,
+});
+
+// Slack retries undelivered events, and a misbehaving/compromised workspace
+// could otherwise hammer this endpoint — keyed by IP same as every other
+// unauthenticated POST here (the HMAC signature check in coworkerRoutes.js
+// is the real authorization gate, this just bounds request volume).
+const coworkerSlackLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
 module.exports = {
     loginLimiter,
     createRoomTokenLimiter,
@@ -191,4 +216,6 @@ module.exports = {
     clipCreateLimiter,
     clipChunkLimiter,
     clipViewLimiter,
+    coworkerMessageLimiter,
+    coworkerSlackLimiter,
 };

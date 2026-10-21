@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" class="no-js">
+    <head>
+        <!-- Title and Icon -->
+
+        <title>VCPeer Coworker — your always-on AI assistant | VCPeer</title>
+        <link rel="shortcut icon" href="../images/logo.svg" />
+        <link rel="apple-touch-icon" href="../images/logo.svg" />
+
+        <!-- Meta Information -->
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="darkreader-lock" />
+
+        <meta
+            name="description"
+            content="VCPeer Coworker is the same AI assistant available on your VCPeer call, as async text, and in Slack — ask it anything, anytime, free."
+        />
+        <link rel="canonical" href="https://vcpeer.com/coworker" />
+
+        <!-- https://ogp.me -->
+
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="VCPeer" />
+        <meta property="og:title" content="VCPeer Coworker" />
+        <meta
+            property="og:description"
+            content="One AI coworker across your call, async text, and Slack — built into VCPeer."
+        />
+        <meta property="og:image" content="https://vcpeer.com/images/preview.png" />
+        <meta property="og:url" content="https://vcpeer.com/coworker" />
+
+        <!-- StyleSheet -->
+
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" href="../css/landing.css" />
+        <link rel="stylesheet" href="../css/newcall.css" />
+
+        <!-- JavaScripts -->
+
+        <script async src="../js/stats.js"></script>
+        <script defer src="../js/insights.js"></script>
+
+        <style>
+            .coworker-shell {
+                max-width: 640px;
+                margin: 0 auto;
+                text-align: left;
+            }
+            .coworker-log {
+                border: 1px solid var(--border-color, #2a2f3a);
+                border-radius: 10px;
+                padding: 16px;
+                height: 420px;
+                overflow-y: auto;
+                margin-bottom: 16px;
+            }
+            .coworker-msg {
+                margin-bottom: 14px;
+                line-height: 1.45;
+                font-size: 0.9rem;
+            }
+            .coworker-msg .coworker-role {
+                display: block;
+                font-size: 0.7rem;
+                font-weight: 700;
+                letter-spacing: 0.02em;
+                text-transform: uppercase;
+                opacity: 0.6;
+                margin-bottom: 2px;
+            }
+            .coworker-msg.user .coworker-role {
+                color: #4c8dff;
+            }
+            .coworker-msg.assistant .coworker-role {
+                color: #2fbf71;
+            }
+            .coworker-empty {
+                opacity: 0.6;
+                font-size: 0.875rem;
+            }
+            .coworker-form {
+                display: flex;
+                gap: 8px;
+            }
+            .coworker-form textarea {
+                flex: 1;
+                resize: none;
+                min-height: 48px;
+                max-height: 160px;
+            }
+            .coworker-status {
+                font-size: 0.8rem;
+                margin-top: 10px;
+                min-height: 1.2em;
+                opacity: 0.75;
+            }
+            .coworker-status.error {
+                color: #b42318;
+            }
+            .coworker-hint {
+                font-size: 0.8rem;
+                opacity: 0.65;
+                margin-top: 24px;
+            }
+        </style>
+    </head>
+    <body class="has-animations">
+        <div class="body-wrap">
+            <header class="site-header reveal-from-top">
+                <div class="container">
+                    <div class="site-header-inner">
+                        <div class="brand">
+                            <div class="m-0">
+                                <a href="/"><img src="../images/logo.svg" alt="VCPeer" width="32" height="32" /></a>
+                            </div>
+                        </div>
+                        <nav id="header-nav" class="header-nav">
+                            <div class="header-nav-inner">
+                                <ul class="list-reset text-xxs">
+                                    <li><a href="/">Call</a></li>
+                                    <li><a href="/send">Send</a></li>
+                                    <li><a href="https://share.vcpeer.com">Share a link</a></li>
+                                    <li><a href="https://book.vcpeer.com/admin/30min">Book</a></li>
+                                    <li><a href="https://live.vcpeer.com">Live</a></li>
+                                    <li><a href="/launchboard">Launchboard</a></li>
+                                    <li><a href="/coworker">Coworker</a></li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+            <main class="site-content mt-48">
+                <section class="hero section center-content">
+                    <div class="container">
+                        <div class="hero-inner section-inner">
+                            <div class="container-xs">
+                                <h1 class="mt-0 mb-16 reveal-from-bottom">VCPeer Coworker</h1>
+                                <p class="mt-0 mb-32 reveal-from-bottom">
+                                    One always-on AI assistant across VCPeer: it's in your call's chat panel, it's
+                                    here for async follow-up after the call ends, and it answers in Slack when
+                                    mentioned. Free, no signup.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <div class="container">
+                        <div class="coworker-shell">
+                            <div id="coworkerLog" class="coworker-log" role="log" aria-live="polite">
+                                <p class="coworker-empty">
+                                    Ask anything — about VCPeer, your work, or just to think something through.
+                                </p>
+                            </div>
+                            <form id="coworkerForm" class="coworker-form">
+                                <textarea
+                                    id="coworkerInput"
+                                    maxlength="4000"
+                                    placeholder="Ask VCPeer Coworker..."
+                                    required
+                                ></textarea>
+                                <button type="submit" class="button button-primary br-6">Send</button>
+                            </form>
+                            <p id="coworkerStatus" class="coworker-status" role="status"></p>
+                            <p class="coworker-hint">
+                                Were you just on a VCPeer call? Open
+                                <code>/coworker?thread=room:&lt;your-call's-room-id&gt;</code> (the part after
+                                <code>/join/</code> in your call's URL) to continue that same conversation here.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer id="footer" class="site-footer center-content-mobile">
+                <div class="container">
+                    <div class="site-footer-inner">
+                        <div class="footer-top space-between text-xxs">
+                            <div class="brand">
+                                <a href="/"><img src="../images/logo.svg" alt="VCPeer" width="32" height="32" /></a>
+                            </div>
+                        </div>
+                        <div class="footer-bottom space-between text-xxs invert-order-desktop">
+                            <nav class="footer-nav">
+                                <ul class="list-reset">
+                                    <li>
+                                        <a
+                                            href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Source code</a
+                                        >
+                                    </li>
+                                    <li><a href="/privacy">Privacy</a></li>
+                                    <li><a href="mailto:hello@vcpeer.com">Contact</a></li>
+                                </ul>
+                            </nav>
+                            <div class="footer-copyright">&copy; 2026 VCPeer</div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <script defer src="../js/brand.js"></script>
+        <script defer src="../js/landing.js"></script>
+        <script src="../js/coworker.js"></script>
+    </body>
+</html>

@@ -39,3 +39,7 @@ deploy/.env.production
 # let a redeploy overwrite them — see deploy/README.md)
 app/data/launchboard.json
 app/data/notify.json
+
+# VCPeer Coworker conversation threads (real user data, never commit or let a
+# redeploy overwrite them — see deploy/README.md)
+app/data/coworker/

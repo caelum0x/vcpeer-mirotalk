@@ -99,6 +99,7 @@ const {
     notifySubmitLimiter,
 } = require('./middleware/rateLimiter');
 const { initTransfers } = require('./transfers');
+const { initCoworker } = require('./coworker');
 const { initClips } = require('./clips');
 
 const port = config.server.port;
@@ -363,8 +364,13 @@ if (configChatGPT.enabled) {
     if (configChatGPT.apiKey) {
         const { OpenAI } = require('openai');
         const configuration = {
-            basePath: configChatGPT.basePath,
-            apiKey: configChatGPT.apiKey,
+            // The openai SDK (v4+) reads `baseURL`, not `basePath` — the
+            // latter was silently ignored, so every call fell through to
+            // OpenAI's own default endpoint regardless of configChatGPT's
+            // value. Fixed as part of wiring this at VCPeer's free
+            // ai-relay-worker by default (see config.template.js `chatGPT`).
+            baseURL: configChatGPT.basePath,
+            apiKey: configChatGPT.apiKey || 'unused-relay-key',
         };
         chatGPT = new OpenAI(configuration);
     } else {
@@ -469,6 +475,8 @@ const views = {
     send: path.join(__dirname, '../../', 'public/views/send.html'),
     // VCPeer Clips — async "Record & share" viewer page (Loom-style), see app/src/clips/
     watch: path.join(__dirname, '../../', 'public/views/watch.html'),
+    // VCPeer Coworker — async text follow-up page, see app/src/coworker/
+    coworker: path.join(__dirname, '../../', 'public/views/coworker.html'),
     // SEO landing pages (static, matching researched query clusters, see
     // plans/vcpeer-build-2026-10-14.md "SEO pages" section)
     seoFreeVideoCall: path.join(__dirname, '../../', 'public/views/seo/free-video-call.html'),
@@ -481,6 +489,9 @@ const views = {
     seoStreamTwitchKick: path.join(__dirname, '../../', 'public/views/seo/stream-to-twitch-and-kick.html'),
     seoSelfHostedZoomAlternative: path.join(__dirname, '../../', 'public/views/seo/self-hosted-zoom-alternative.html'),
     seoFirefoxSendAlternative: path.join(__dirname, '../../', 'public/views/seo/firefox-send-alternative.html'),
+    // VCPeer Clips — async "Record & share" marketing landing page (the
+    // feature itself, app/src/clips/, previously had zero top-of-funnel page)
+    seoLoomAlternative: path.join(__dirname, '../../', 'public/views/seo/loom-alternative.html'),
 };
 
 // Branding configuration
@@ -558,7 +569,20 @@ app.use('/mattermost', express.static(dir.public, staticOptions));
 
 app.use(cors(corsOptions)); // Enable CORS with options
 app.use(compression()); // Compress all HTTP responses using GZip
-app.use(express.json()); // Parse JSON bodies
+app.use(
+    express.json({
+        // Stash the exact raw request bytes alongside the parsed body.
+        // Needed by VCPeer Coworker's Slack Events API bridge
+        // (app/src/coworker/slackBridge.js), which must verify Slack's HMAC
+        // request signature against the untouched original bytes — a
+        // re-serialized JSON.stringify(req.body) is not guaranteed to match
+        // byte-for-byte. Negligible cost for every other route: one extra
+        // Buffer reference, nothing is parsed twice.
+        verify: (req, _res, buf) => {
+            req.rawBody = buf;
+        },
+    })
+); // Parse JSON bodies
 app.use(express.urlencoded({ extended: false })); // Parse URL-encoded bodies
 app.use(apiBasePath + '/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument)); // api docs
 
@@ -783,6 +807,9 @@ app.get('/self-hosted-zoom-alternative', (req, res) => {
 app.get('/firefox-send-alternative', (req, res) => {
     res.sendFile(views.seoFirefoxSendAlternative);
 });
+app.get('/loom-alternative', (req, res) => {
+    res.sendFile(views.seoLoomAlternative);
+});
 
 // VCPeer Send — P2P large-file transfer page. Reuses the existing signaling
 // (join / addPeer / relaySDP / relayICE) for the WebRTC handshake; see
@@ -910,6 +937,17 @@ const clips = initClips(config);
 app.use(`${apiBasePath}/clips`, clips.router);
 app.get('/watch/:id', (req, res) => {
     res.sendFile(views.watch);
+});
+
+// VCPeer Coworker — always-on AI assistant across VCPeer's surfaces: this
+// page for async text follow-up, the in-call "VCPeer Coworker" assistant
+// (see the `getChatGPT` socket handler below, which persists its exchanges
+// here too via `coworker.appendRoomExchange`), and optionally Slack. See
+// app/src/coworker/.
+const coworker = initCoworker(config.coworker);
+app.use(`${apiBasePath}/coworker`, coworker.router);
+app.get('/coworker', (req, res) => {
+    res.sendFile(views.coworker);
 });
 
 // test Stun and Turn connections
@@ -1708,6 +1746,10 @@ io.sockets.on('connect', async (socket) => {
                     const message = completion.choices[0].message.content.trim();
                     // Add response to context
                     context.push({ role: 'assistant', content: message });
+                    // Persist this exchange into VCPeer Coworker's thread
+                    // store, keyed by room, so the same conversation can be
+                    // continued on the /coworker page after the call ends.
+                    coworker.appendRoomExchange(room_id, prompt, message);
                     // Log conversation details
                     log.debug('ChatGPT', {
                         time: time,

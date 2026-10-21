@@ -5075,3 +5075,20 @@ a:focus-visible {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Contextual cross-links between topically related SEO landing pages
+   (public/views/seo/*.html) — see GROWTH-BLOCKERS-2026-10-18.md for why this
+   matters: a single footer row isn't enough internal-link density for
+   programmatic SEO, each page also links to 2-3 specific related pages. */
+.related-guides {
+    border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.related-guides li {
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.related-guides li:last-child {
+    margin-bottom: 0;
+}

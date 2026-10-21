@@ -331,7 +331,12 @@ const chatInputEmoji = {
 
 const CHAT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 const CHAT_GPT_PEER_ID = 'chatgpt';
-const CHAT_GPT_NAME = 'ChatGPT';
+// Display name only — kept as "VCPeer Coworker" so the same always-on
+// assistant reads as one identity across the call (here), async text
+// follow-up (/coworker), and Slack (see app/src/coworker/). The internal
+// peer id above is left unchanged to avoid touching anything keyed off it
+// (DOM element ids, stored chat history, etc.).
+const CHAT_GPT_NAME = 'VCPeer Coworker';
 
 const roomEmojiBurstState = {
     startedAt: 0,
@@ -12763,8 +12768,8 @@ function appendMessage(from, img, side, msg, privateMsg, msgId = null, to = '') 
 
     const message = getId(`message-${chatMessagesId}`);
     if (message) {
-        if (getFrom === 'ChatGPT') {
-            // Stream the message for ChatGPT
+        if (getFrom === CHAT_GPT_NAME) {
+            // Stream the message for VCPeer Coworker
             streamMessage(message, getMsg, 100);
         } else {
             // Process the message for other senders

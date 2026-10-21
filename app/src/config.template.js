@@ -201,15 +201,68 @@ module.exports = {
     },
 
     // ==========================================
-    // ChatGPT / OpenAI
+    // ChatGPT / OpenAI — the in-call "VCPeer Coworker" assistant
     // ==========================================
+    // Enabled by default (unlike upstream) and defaults its endpoint to
+    // VCPeer's own free, OpenAI-compatible AI relay (ai-relay-worker, see
+    // app/src/coworker/coworkerClient.js) instead of requiring a paid
+    // OPENAI_APIKEY. Set CHATGPT_BASE_PATH/CHATGPT_APIKEY to point this at a
+    // real OpenAI/Anthropic-compatible account instead.
     chatGPT: {
-        enabled: getEnvBoolean(process.env.CHATGPT_ENABLED),
-        basePath: process.env.CHATGPT_BASE_PATH,
-        apiKey: process.env.CHATGPT_APIKEY,
-        model: process.env.CHATGPT_MODEL,
-        max_tokens: parseInt(process.env.CHATGPT_MAX_TOKENS),
-        temperature: parseInt(process.env.CHATGPT_TEMPERATURE),
+        enabled: getEnvBoolean(process.env.CHATGPT_ENABLED, true),
+        basePath:
+            process.env.CHATGPT_BASE_PATH ||
+            process.env.AI_RELAY_BASE_URL ||
+            'https://ai-relay.subasiarhan3.workers.dev/v1/',
+        apiKey: process.env.CHATGPT_APIKEY || process.env.AI_RELAY_KEY || '',
+        model: process.env.CHATGPT_MODEL || 'vcpeer-coworker',
+        max_tokens: parseInt(process.env.CHATGPT_MAX_TOKENS) || 800,
+        temperature: parseFloat(process.env.CHATGPT_TEMPERATURE) || 0.4,
+    },
+
+    // ==========================================
+    // VCPeer Coworker — async text follow-up + Slack bridge
+    // ==========================================
+    // The same "VCPeer Coworker" assistant that joins a call (config.chatGPT
+    // above) is also reachable as a standalone conversation thread (the
+    // `/coworker` page + `/api/v1/coworker` routes, for following up after a
+    // call ends) and, optionally, from Slack. All three surfaces share one
+    // persona and, by default, the same free relay backend — see
+    // app/src/coworker/.
+    coworker: {
+        enabled: getEnvBoolean(process.env.COWORKER_ENABLED, true),
+        name: process.env.COWORKER_NAME || 'VCPeer Coworker',
+        systemPrompt:
+            process.env.COWORKER_SYSTEM_PROMPT ||
+            'You are VCPeer Coworker, an always-on assistant built into VCPeer ' +
+                '(video calls, Live streaming, scheduling, and VCPeer Send file sharing). ' +
+                'Help the user with questions about their call, their work, or VCPeer itself. ' +
+                'Be concise and concrete. You do not have access to the live call audio/video, ' +
+                'only to the text conversation you are shown.',
+        baseUrl:
+            process.env.COWORKER_BASE_URL ||
+            process.env.AI_RELAY_BASE_URL ||
+            'https://ai-relay.subasiarhan3.workers.dev/v1/chat/completions',
+        apiKey: process.env.COWORKER_API_KEY || process.env.AI_RELAY_KEY || '',
+        model: process.env.COWORKER_MODEL || 'vcpeer-coworker',
+        maxTokens: parseInt(process.env.COWORKER_MAX_TOKENS) || 800,
+        temperature: parseFloat(process.env.COWORKER_TEMPERATURE) || 0.4,
+        dataDir: process.env.COWORKER_DATA_DIR || path.join(__dirname, '../data', 'coworker'),
+        maxThreads: parseInt(process.env.COWORKER_MAX_THREADS) || 20000,
+        maxMessagesPerThread: parseInt(process.env.COWORKER_MAX_MESSAGES_PER_THREAD) || 60,
+        // Slack bridge — "mention VCPeer Coworker in Slack, keep the thread going".
+        // Requires a real Slack app (owner-only setup, see deploy/README.md):
+        //   1. Create a Slack app at https://api.slack.com/apps, enable Event
+        //      Subscriptions with Request URL https://<your-domain>/api/v1/coworker/slack/events
+        //      and subscribe to `app_mention` and `message.im`.
+        //   2. Add the `chat:write` bot scope, install the app to the workspace.
+        //   3. Copy the Signing Secret to COWORKER_SLACK_SIGNING_SECRET and the
+        //      Bot User OAuth Token (xoxb-...) to COWORKER_SLACK_BOT_TOKEN.
+        slack: {
+            enabled: getEnvBoolean(process.env.COWORKER_SLACK_ENABLED),
+            signingSecret: process.env.COWORKER_SLACK_SIGNING_SECRET || '',
+            botToken: process.env.COWORKER_SLACK_BOT_TOKEN || '',
+        },
     },
 
     // ==========================================
