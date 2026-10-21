@@ -221,3 +221,86 @@ git merge upstream/master
 
 and re-check for new literal "MiroTalk" strings reintroduced by the merge (the
 `config.test.js` brand-name assertion in `tests/` catches the config-level ones).
+
+## VCPeer Coworker — deploy steps (built 2026-10-21, not yet live)
+
+"VCPeer Coworker" is the always-on AI assistant now wired across three
+surfaces, forking the cross-surface idea from CopilotKit/OpenDots but
+implemented directly on VCPeer's own stack (Node/Express/Socket.io + the
+free `ai-relay-worker`) instead of OpenDots' CopilotKit Intelligence/Channels
+cloud, which would have required a new paid dependency:
+
+- **In a call** — the pre-existing "ChatGPT" in-call assistant
+  (`getChatGPT` socket handler, `public/js/client.js`), now renamed to
+  "VCPeer Coworker", enabled by default, and pointed at the free relay (it
+  was previously disabled and had a latent `basePath`→`baseURL` bug that
+  silently made it fall through to a real OpenAI account regardless of
+  config — fixed).
+- **Async text follow-up** — new `/coworker` page +
+  `/api/v1/coworker/message` API (`app/src/coworker/`), a persisted
+  conversation thread so a user can keep talking to the same assistant after
+  a call ends. Call exchanges are also persisted under `room:<roomId>` so
+  `/coworker?thread=room:<roomId>` resumes that call's conversation.
+- **Slack** — new `/api/v1/coworker/slack/events` Events API bridge
+  (`app/src/coworker/slackBridge.js`), HMAC-signature verified, answers
+  `app_mention` and DM events in-thread via `chat.postMessage`.
+
+All three share one persona (`config.coworker.systemPrompt`) and, by
+default, VCPeer's own free `ai-relay-worker`
+(`https://ai-relay.subasiarhan3.workers.dev`) — no new paid API key. Verified
+locally end-to-end against the live relay (real completions, persisted
+threads, rate limiting, XSS sanitization, Slack signature verify all
+exercised manually) and the full existing `npx mocha tests/*.js` suite
+(705 passing, zero regressions) before this was pushed to `master`.
+
+### Why this isn't live on vcpeer.com yet
+
+Deploying needs the same `rsync` + `pm2 restart vcpeer` steps as every other
+deploy (see "Steps" above) run from a shell whose source IP is allowed
+through the box's Oracle Cloud Network Security Group on port 22 — this
+build session's shell is not: `nc -zv 130.61.180.42 22` returns an immediate
+`Connection refused` (an active NSG rejection, not a timeout/outage — port
+443 connects fine and `vcpeer.com` itself serves 200 normally, so only SSH is
+locked down to specific source IPs). This is the one truly owner-only step
+left:
+
+1. From a shell whose IP the box's NSG allows (the owner's own machine/network,
+   or add this session's egress IP to the NSG if recurring agent deploys are
+   wanted): `rsync` this repo to `/srv/src/vcpeer/` per the exclude list in
+   "Launchboard/Notify data files..." above (now also excluding
+   `app/data/coworker/` — real user conversation data, same reasoning as
+   `launchboard.json`/`notify.json`), then `pm2 restart vcpeer`.
+2. **Diff `config.js` against `config.template.js`** (see "`app/src/config.js`
+   — gitignored and never auto-refreshed" above) — this feature adds a new
+   top-level `coworker` block and extends `chatGPT`, both of which a stale
+   box `config.js` will be missing.
+3. **Add the new env vars to the box's real `.env`** (never synced by
+   rsync, see `.gitignore`): `CHATGPT_ENABLED=true`,
+   `CHATGPT_BASE_PATH=https://ai-relay.subasiarhan3.workers.dev/v1/`,
+   `CHATGPT_APIKEY=<ai-relay-worker key, see
+   ~/products/gtm/tools/ai-relay-worker>`, `CHATGPT_MODEL=vcpeer-coworker`,
+   `CHATGPT_MAX_TOKENS=800`, `CHATGPT_TEMPERATURE=0.4`, `AI_RELAY_KEY=<same
+   key>`, `COWORKER_ENABLED=true`. (This build session's local `.env` already
+   has these set and was used for the live verification above — copy its
+   values over rather than re-deriving them.)
+4. Smoke test: `curl -I https://vcpeer.com/coworker` → 200, and
+   `curl -s -X POST https://vcpeer.com/api/v1/coworker/message -H
+   'Content-Type: application/json' -d '{"message":"hello"}'` → a real JSON
+   reply (not a 503).
+
+### Owner-only: the Slack bridge itself
+
+`/api/v1/coworker/slack/events` is fully coded and tested (signature
+verify, event parsing, relay call, thread persistence, `chat.postMessage`
+reply all exercised manually with a fake Slack app above — only the final
+`chat.postMessage` call needs a real bot token to actually land in Slack).
+Turning it on needs a real Slack app, which only the owner can create:
+
+1. Create an app at <https://api.slack.com/apps>, enable Event
+   Subscriptions with Request URL
+   `https://vcpeer.com/api/v1/coworker/slack/events`, subscribe to
+   `app_mention` and `message.im`.
+2. Add the `chat:write` bot scope, install the app to the workspace.
+3. Set `COWORKER_SLACK_ENABLED=true`, `COWORKER_SLACK_SIGNING_SECRET=<Signing
+   Secret>`, `COWORKER_SLACK_BOT_TOKEN=<Bot User OAuth Token, xoxb-...>` in
+   the box's `.env`, `pm2 restart vcpeer`.
