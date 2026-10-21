@@ -69,6 +69,7 @@ describe('VCPeer routes', function () {
         { route: '/stream-to-twitch-and-kick', titleContains: 'Stream to Twitch and Kick' },
         { route: '/self-hosted-zoom-alternative', titleContains: 'Self-Hosted Zoom Alternative' },
         { route: '/firefox-send-alternative', titleContains: 'Firefox Send Alternative' },
+        { route: '/loom-alternative', titleContains: 'Loom Alternative' },
     ];
 
     seoPages.forEach(({ route, titleContains }) => {
@@ -80,6 +81,22 @@ describe('VCPeer routes', function () {
             body.should.match(/<title>/);
             body.should.containEql(titleContains);
             body.should.not.containEql('MiroTalk');
+        });
+    });
+
+    // Regression test for the "zero internal links between SEO landing pages"
+    // gap found in GROWTH-BLOCKERS-2026-10-18.md: a single homepage footer
+    // row isn't dense enough internal-link signal for programmatic SEO — each
+    // page must also link to at least 2 *other* SEO landing pages (not just
+    // itself/home/privacy/github/mailto).
+    const seoRoutes = new Set(seoPages.map((p) => p.route));
+    seoPages.forEach(({ route }) => {
+        it(`GET ${route} links to at least 2 other SEO landing pages`, async () => {
+            const res = await fetch(`${BASE}${route}`);
+            const body = await res.text();
+            const hrefs = [...body.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+            const linkedOtherSeoPages = new Set(hrefs.filter((href) => seoRoutes.has(href) && href !== route));
+            linkedOtherSeoPages.size.should.be.above(1); // at least 2 other SEO pages
         });
     });
 
@@ -100,6 +117,7 @@ describe('VCPeer routes', function () {
         body.should.containEql('https://vcpeer.com/stream-to-twitch-and-kick');
         body.should.containEql('https://vcpeer.com/self-hosted-zoom-alternative');
         body.should.containEql('https://vcpeer.com/firefox-send-alternative');
+        body.should.containEql('https://vcpeer.com/loom-alternative');
     });
 
     it('GET / includes the suite nav links to every VCPeer tool', async () => {

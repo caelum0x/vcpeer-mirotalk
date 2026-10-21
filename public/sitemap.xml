@@ -66,6 +66,11 @@
         <priority>0.8</priority>
     </url>
     <url>
+        <loc>https://vcpeer.com/loom-alternative</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
         <loc>https://vcpeer.com/launchboard</loc>
         <changefreq>daily</changefreq>
         <priority>0.7</priority>
