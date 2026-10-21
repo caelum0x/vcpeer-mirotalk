@@ -264,9 +264,23 @@ build session's shell is not: `nc -zv 130.61.180.42 22` returns an immediate
 locked down to specific source IPs). This is the one truly owner-only step
 left:
 
-1. From a shell whose IP the box's NSG allows (the owner's own machine/network,
-   or add this session's egress IP to the NSG if recurring agent deploys are
-   wanted): `rsync` this repo to `/srv/src/vcpeer/` per the exclude list in
+**Correction, checked read-only via the OCI API** (`infra-box/oracle/.venv`,
+which already has `oci` + `~/.oci/config` for this tenancy): this is not a
+per-source-IP NSG rule — the box has **no NSG attached**, and its subnet
+security list allows ingress TCP/22 from `0.0.0.0/0` for every source. Tried
+the OCI Run Command plugin (reports `RUNNING` on this instance) to check
+`sshd`/`iptables` without needing SSH at all; the command sat in `ACCEPTED`
+for 7.5+ minutes and never executed, so the Oracle Cloud Agent on the box
+itself isn't responding either — points to something wrong inside the guest
+(sshd or the whole cloud-agent process down/stuck), not an IP allowlist.
+Fix needs the OCI Console serial/VNC console (Compute -> Instances ->
+products-box -> Console Connection) to restart the stuck service, or a full
+instance reboot if the console itself doesn't respond — full details in
+`videogen/docs/plans/GROWTH-TASKS-DEPLOY-BLOCKER-2026-10-21.md` (same box
+serves Menivor too). A reboot takes down every service on this shared box
+for the reboot window, so that's the owner's call on timing.
+
+1. Once SSH is back: from any shell, `rsync` this repo to `/srv/src/vcpeer/` per the exclude list in
    "Launchboard/Notify data files..." above (now also excluding
    `app/data/coworker/` — real user conversation data, same reasoning as
    `launchboard.json`/`notify.json`), then `pm2 restart vcpeer`.
