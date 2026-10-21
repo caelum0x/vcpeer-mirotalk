@@ -156,6 +156,32 @@ checksum against that release's `SHASUMS256.txt`), extract it straight into
 `/srv/src/vcpeer/.node22` (it has the same `bin/lib/include/share` layout Node's own
 tarball uses), `chown -R deploy:deploy` it, then `pm2 restart vcpeer`.
 
+## `app/src/config.js` — gitignored and never auto-refreshed, also goes stale
+
+`app/src/config.js` is generated once from `config.template.js` by the `prestart`
+script (`test -f app/src/config.js || cp app/src/config.template.js app/src/config.js`)
+and is itself gitignored, so it is both outside the rsync source tree's git history
+and never overwritten by a later deploy — the same "lives outside the sync boundary"
+shape as `.node22` above, but for config instead of a runtime. Every time a new
+top-level config block is added to `config.template.js` (e.g. the `clips` block added
+for VCPeer Clips), the box's existing `config.js` silently keeps missing it — code
+that reads a missing block either falls back to a hardcoded default (logged as a
+warning, e.g. `ClipSend config.clips is missing (stale config.js...)`) or, for a block
+with no such fallback, could throw at the first request that touches it. **After every
+deploy, diff the two and copy over if they differ** (safe only when the existing
+`config.js` has no box-specific manual edits — check the diff first):
+
+```
+diff /srv/src/vcpeer/app/src/config.js /srv/src/vcpeer/app/src/config.template.js
+# if the only diff is new template blocks (no local customization lost):
+cp /srv/src/vcpeer/app/src/config.js /srv/src/vcpeer/app/src/config.js.bak-$(date +%Y%m%d)
+cp /srv/src/vcpeer/app/src/config.template.js /srv/src/vcpeer/app/src/config.js
+pm2 restart vcpeer
+```
+
+(Hit live during this session's 2026-10-21 deploy: `config.clips` was missing,
+caught via the warning log before it became user-visible, fixed with the above.)
+
 ## Rollback (single command, no history rewrite needed)
 
 ```
