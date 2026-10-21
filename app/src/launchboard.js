@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const Logger = require('./logs');
+const { writeJsonFileAtomic } = require('./lib/atomicJsonFile');
 const log = new Logger('Launchboard');
 
 /**
@@ -72,7 +73,7 @@ function ensureDataFile() {
         fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (!fs.existsSync(DATA_FILE)) {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(seedListings(), null, 2));
+        writeJsonFileAtomic(DATA_FILE, seedListings());
     }
 }
 
@@ -89,7 +90,7 @@ function readAll() {
 }
 
 function writeAll(listings) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(listings, null, 2));
+    writeJsonFileAtomic(DATA_FILE, listings);
 }
 
 /**
