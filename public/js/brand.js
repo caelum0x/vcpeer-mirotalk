@@ -67,7 +67,9 @@ let brand = {
     },
     site: {
         shortcutIcon: '../images/logo.svg',
-        appleTouchIcon: '../images/logo.svg',
+        // Must be a raster PNG, not SVG — iOS/iPadOS Safari's "Add to Home Screen"
+        // doesn't support SVG for apple-touch-icon and falls back to a blank tile.
+        appleTouchIcon: '../images/apple-touch-icon.png',
         landingTitle: 'VCPeer — Free P2P Video Calls, No Signup, No Time Limit',
         newCallTitle: 'VCPeer a Free Secure Video Calls, Chat & Screen Sharing.',
         newCallRoomTitle: 'Pick name. <br />Share URL. <br />Start conference.',

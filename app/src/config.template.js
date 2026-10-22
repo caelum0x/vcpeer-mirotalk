@@ -420,7 +420,11 @@ module.exports = {
         },
         site: {
             shortcutIcon: '../images/logo.svg',
-            appleTouchIcon: '../images/logo.svg',
+            // iOS/iPadOS Safari's "Add to Home Screen" ignores SVG for apple-touch-icon
+            // (PNG/JPEG only per Apple's spec) and silently falls back to a blank/generic
+            // tile — so this must stay a raster PNG, unlike shortcutIcon above which SVG
+            // favicons work fine for in every modern desktop browser.
+            appleTouchIcon: '../images/apple-touch-icon.png',
             landingTitle: 'VCPeer — Free P2P Video Calls, No Signup, No Time Limit',
             newCallTitle: 'VCPeer a Free Secure Video Calls, Chat & Screen Sharing.',
             newCallRoomTitle: 'Pick name. <br />Share URL. <br />Start conference.',
