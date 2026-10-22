@@ -49,8 +49,16 @@ package.json, README.md) to match if that happens.
 
     Fill in:
     - `JWT_KEY` — generate with `openssl rand -hex 32`
-    - TURN credentials, if the Cloudflare Calls TURN signup (owner-only, see below) is
-      done by then; otherwise leave `TURN_SERVER_ENABLED=false` and ship STUN-only.
+    - TURN credentials — self-hosted, not owner-blocked. Run `coturn/` via Docker on
+      the same box (see `coturn/README.md`), generate a `user:pass` with
+      `openssl rand -hex 16` / `openssl rand -base64 24`, set `listening-ip`/`relay-ip`
+      to the box's **private** NIC IP (`ip -4 addr show`, not the public IP — cloud
+      VMs 1:1-NAT the public IP, so coturn can't bind a relay socket to it directly)
+      and `external-ip=PUBLIC_IP/PRIVATE_IP` so NAT translation is still advertised
+      correctly to peers. Then set `TURN_SERVER_ENABLED=true`,
+      `TURN_SERVER_URL=turn:<public-ip>:3478`, and the matching username/credential.
+      Verify with a real STUN+TURN Allocate exchange (not just a port scan — UDP port
+      scans report false positives) before trusting it.
 
 4. **AGPL Section 13 — update the source-code link to the exact deployed commit.**
    This is a legal requirement, not a nice-to-have: if the link is ever missing or
@@ -196,9 +204,15 @@ migration to reverse).
 
 ## Owner-only (not done in the build session, silent blockers)
 
-- **Cloudflare Calls TURN account signup** (or metered.ca free-tier signup, own
-  account not the shared demo key) — needed to flip `TURN_SERVER_ENABLED=true` for
-  real NAT traversal. Until then, ship STUN-only (honest, statable limitation).
+- ~~Cloudflare Calls TURN account signup~~ — **done differently, no longer a
+  blocker.** Self-hosted `coturn` (2026-10-22) on the same box instead of signing up
+  for a third-party TURN provider: real STUN binding + authenticated TURN Allocate
+  verified end-to-end (relayed address `130.61.180.42:<port>` returned on a real
+  protocol exchange, not just a port scan), `TURN_SERVER_ENABLED=true` is live in
+  production. The only non-owner step this took was an Oracle Cloud security-list
+  ingress rule (udp/tcp 3478 + udp 49152-49452) — done via the OCI Python SDK already
+  vendored in `infra-box/oracle/`, no console click-through needed. See
+  `coturn/README.md` for the self-hosted runbook.
 - Actual production deploy (steps 1-7 above) — DNS already points at the Oracle box,
   no DNS change needed, just running this runbook.
 - GitHub repo rename decision (`vcpeer-mirotalk` vs. reclaiming `vcpeer` from the old

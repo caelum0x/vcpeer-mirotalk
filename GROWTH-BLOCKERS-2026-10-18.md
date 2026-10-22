@@ -33,16 +33,20 @@ rsync -az --delete \
 pm2 restart vcpeer
 ```
 
-## Owner-only item (already tracked, reaffirmed still open)
+## RESOLVED 2026-10-22 — TURN is live, self-hosted, no owner signup needed
 
-TURN is still disabled (`TURN_SERVER_ENABLED=false` in `.env`/`deploy/.env.production.template`).
-STUN-only works for most home/office NATs but not symmetric NAT / strict corporate
-firewalls — those real visitors will silently fail to connect on a call. Fix is an
-owner-only signup (Cloudflare Calls TURN free tier, or metered.ca), already documented
-in `deploy/README.md` ("Cloudflare Calls TURN account signup... owner-only"). Not
-re-doing that write-up here, just flagging it's still the single biggest *technical*
-ceiling on call-completion rate once real traffic shows up — worth prioritizing once
-someone with the Cloudflare account has 10 minutes.
+Was flagged above as "owner-only, needs a Cloudflare Calls signup" — turned out not
+to need an owner step at all. Self-hosted `coturn` on the same Oracle box instead
+(`coturn/README.md` has the full runbook): `TURN_SERVER_ENABLED=true` is live in
+production right now, verified with a real STUN Binding + authenticated TURN
+Allocate protocol exchange (not a port scan — confirmed a `XOR-RELAYED-ADDRESS`
+response with the box's real public IP and a port in the configured relay range),
+and confirmed the running server process's computed `iceServers` array actually
+includes it. The only infra step needed was opening 3 ports on the Oracle Cloud
+security list (via the OCI Python SDK already vendored in `infra-box/oracle/`, no
+console/CLI needed) — not a Cloudflare account. See `coturn/README.md`'s "Live
+deployment notes" section for the cloud-VM public/private-IP relay-bind gotcha that
+caused the first attempt to fail silently with `508 Insufficient Capacity`.
 
 ## Checked and found healthy (no action taken)
 
