@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" class="no-js">
+    <head>
+        <!-- Title and Icon -->
+
+        <title>Meeting notes — VCPeer</title>
+        <link rel="shortcut icon" href="../images/logo.svg" />
+        <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+        <!-- Meta Information -->
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="darkreader-lock" />
+        <meta name="robots" content="noindex" />
+
+        <meta
+            name="description"
+            content="Shared VCPeer meeting notes — a saved caption transcript with an AI summary and action items."
+        />
+
+        <!-- StyleSheet -->
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" href="../css/landing.css" />
+        <link rel="stylesheet" href="../css/notes.css" />
+
+        <!-- JavaScripts -->
+
+        <script async src="../js/stats.js"></script>
+        <script defer src="../js/insights.js"></script>
+    </head>
+    <body class="has-animations">
+        <div class="body-wrap">
+            <header class="site-header reveal-from-top">
+                <div class="container">
+                    <div class="site-header-inner">
+                        <div class="brand">
+                            <div class="m-0">
+                                <a href="/">
+                                    <img src="../images/logo.svg" alt="VCPeer" width="32" height="32" />
+                                </a>
+                            </div>
+                        </div>
+                        <nav id="header-nav" class="header-nav">
+                            <div class="header-nav-inner">
+                                <ul class="list-reset text-xxs">
+                                    <li><a href="/">Call</a></li>
+                                    <li><a href="/send">Send</a></li>
+                                    <li><a href="https://book.vcpeer.com/admin/30min">Book</a></li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+
+            <main class="site-content mt-48">
+                <section class="section notes-section">
+                    <div class="container">
+                        <div class="notes-app">
+                            <!-- Loading state -->
+                            <div id="notesLoading" class="notes-status">Loading notes…</div>
+
+                            <!-- Error / gone state -->
+                            <div id="notesError" class="notes-status" hidden>
+                                These notes don't exist, or have been deleted.
+                            </div>
+
+                            <!-- Loaded -->
+                            <div id="notesPage" class="notes-page" hidden>
+                                <div class="notes-head">
+                                    <i class="fa-solid fa-note-sticky" aria-hidden="true"></i>
+                                    <div class="notes-head-text">
+                                        <h1 class="notes-title" id="notesRoomId">Meeting notes</h1>
+                                        <p class="notes-meta" id="notesDate"></p>
+                                    </div>
+                                </div>
+
+                                <div class="notes-share-row">
+                                    <input
+                                        id="notesShareUrl"
+                                        class="form-input"
+                                        type="text"
+                                        readonly
+                                        aria-label="Shareable link"
+                                    />
+                                    <button type="button" id="notesCopyBtn" class="button button-primary br-6">
+                                        <i class="fa-solid fa-link" aria-hidden="true"></i>
+                                        <span>Copy link</span>
+                                    </button>
+                                    <button type="button" id="notesDeleteBtn" class="button notes-delete-btn br-6" hidden>
+                                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
+
+                                <section class="notes-block" id="notesSummaryBlock" hidden>
+                                    <h2 class="notes-block-title">
+                                        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                                        Summary
+                                    </h2>
+                                    <p class="notes-summary-text" id="notesSummaryText"></p>
+                                </section>
+
+                                <section class="notes-block" id="notesActionsBlock" hidden>
+                                    <h2 class="notes-block-title">
+                                        <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+                                        Action items
+                                    </h2>
+                                    <ul class="notes-actions-list" id="notesActionsList"></ul>
+                                </section>
+
+                                <p class="notes-summary-status" id="notesSummaryStatus" hidden></p>
+
+                                <section class="notes-block">
+                                    <h2 class="notes-block-title">
+                                        <i class="fa-solid fa-closed-captioning" aria-hidden="true"></i>
+                                        Full transcript
+                                    </h2>
+                                    <div class="notes-transcript" id="notesTranscript"></div>
+                                </section>
+
+                                <p class="notes-cta">
+                                    Saved with VCPeer — run your own calls with live captions, free, no signup.
+                                    <a href="/">Start a call</a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer id="footer" class="site-footer center-content-mobile">
+                <div class="container">
+                    <div class="site-footer-inner">
+                        <div class="footer-bottom space-between text-xxs invert-order-desktop">
+                            <nav class="footer-nav">
+                                <ul class="list-reset">
+                                    <li>
+                                        <a
+                                            href="https://github.com/caelum0x/vcpeer-mirotalk"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >Source code</a
+                                        >
+                                    </li>
+                                    <li><a href="/privacy">Privacy</a></li>
+                                    <li><a href="mailto:hello@vcpeer.com">Contact</a></li>
+                                </ul>
+                            </nav>
+                            <div class="footer-copyright">&copy; 2026 VCPeer</div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+
+        <script type="module" src="../js/notes.js"></script>
+    </body>
+</html>

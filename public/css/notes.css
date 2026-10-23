@@ -1,0 +1,161 @@
+/*
+ * Meeting Notes — shared transcript + AI summary viewer (/notes/:id) styles.
+ * Built on top of _tokens.css + landing.css (buttons, form-input, layout
+ * primitives are reused from there), same convention as watch.css.
+ */
+
+.notes-app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-5);
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.notes-status {
+    text-align: center;
+    padding: var(--ds-space-9) var(--ds-space-5);
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.notes-page[hidden],
+.notes-status[hidden] {
+    display: none !important;
+}
+
+.notes-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-space-3);
+}
+
+.notes-head > .fa-note-sticky {
+    font-size: 1.5rem;
+    margin-top: 2px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.notes-title {
+    margin: 0;
+    font-size: 1.5rem;
+    word-break: break-word;
+}
+
+.notes-meta {
+    margin: var(--ds-space-1) 0 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+.notes-share-row {
+    display: flex;
+    gap: var(--ds-space-2);
+    align-items: stretch;
+}
+
+.notes-share-row .form-input {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--ds-font-mono);
+    font-size: 0.85rem;
+}
+
+.notes-share-row button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    white-space: nowrap;
+}
+
+.notes-delete-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 90, 90, 0.4);
+    color: #ff8a8a;
+}
+
+.notes-delete-btn:hover {
+    background: rgba(255, 90, 90, 0.1);
+}
+
+.notes-block {
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.notes-block-title {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    margin: 0 0 var(--ds-space-3);
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.notes-summary-text {
+    margin: 0;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: pre-wrap;
+}
+
+.notes-actions-list {
+    margin: 0;
+    padding-left: var(--ds-space-5);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.notes-summary-status {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.notes-transcript {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-3);
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: var(--ds-space-2);
+}
+
+.notes-transcript-empty {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.notes-transcript-line {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.notes-transcript-meta {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.notes-transcript-text {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.5;
+}
+
+.notes-cta {
+    margin-top: var(--ds-space-6);
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+.notes-cta a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+@media (max-width: 540px) {
+    .notes-share-row {
+        flex-direction: column;
+    }
+}

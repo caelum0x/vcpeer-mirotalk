@@ -767,4 +767,33 @@ module.exports = {
         apiKey: process.env.MAIL_API_KEY || '',
         from: process.env.MAIL_FROM || 'VCPeer <send@vcpeer.com>',
     },
+
+    // ==========================================
+    // Meeting Notes — persisted Whisper/live-caption transcript + an
+    // AI-generated summary and action-item list, surfaced at /notes/:id.
+    // ==========================================
+    // The caption/Whisper transcript (app/src/server.js `caption` /
+    // `getWhisperTranscription`) only ever lived in each peer's own browser
+    // tab, over the WebRTC DataChannel — once every tab closed, it was gone.
+    // This persists an opt-in snapshot of that transcript server-side (same
+    // on-disk-JSON-file convention as notify.js/roomLink.js — no database in
+    // this fork) and, when config.chatGPT is enabled, asks the same
+    // OpenAI-compatible relay already wired for VCPeer Coworker to produce a
+    // short summary + action items. The raw transcript is always saved even
+    // if the summary step is disabled/unavailable/fails.
+    meetingNotes: {
+        dataDir: process.env.MEETING_NOTES_DATA_DIR || path.join(__dirname, '../data'),
+        // Hard caps so one abusive submission can't blow up the data file or
+        // the summarization prompt — generous enough for a real multi-hour
+        // call's worth of captions.
+        maxEntries: parseInt(process.env.MEETING_NOTES_MAX_ENTRIES) || 4000,
+        maxEntryChars: parseInt(process.env.MEETING_NOTES_MAX_ENTRY_CHARS) || 2000,
+        maxTotalChars: parseInt(process.env.MEETING_NOTES_MAX_TOTAL_CHARS) || 90000,
+        // Notes older than this are pruned the next time a new note is saved.
+        retentionDays: parseInt(process.env.MEETING_NOTES_RETENTION_DAYS) || 90,
+        maxRecords: parseInt(process.env.MEETING_NOTES_MAX_RECORDS) || 20000,
+        // Only this many of the most recent transcript lines are sent to the
+        // summarizer (the full transcript is still stored/displayed either way).
+        summaryMaxLines: parseInt(process.env.MEETING_NOTES_SUMMARY_MAX_LINES) || 400,
+    },
 };

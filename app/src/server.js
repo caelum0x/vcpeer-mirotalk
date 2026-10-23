@@ -78,6 +78,7 @@ const Notify = require('./notify');
 const { renderNotifyPage } = require('./notifyView');
 const RoomLink = require('./roomLink');
 const RoomClaims = require('./roomClaims');
+const MeetingNotes = require('./meetingNotes');
 const { sendMail } = require('./lib/mailClient');
 const HtmlInjector = require('./htmlInjector');
 const Host = require('./host');
@@ -104,6 +105,9 @@ const {
     roomLinkLookupLimiter,
     roomClaimLimiter,
     roomClaimStatusLimiter,
+    notesCreateLimiter,
+    notesViewLimiter,
+    notesDeleteLimiter,
 } = require('./middleware/rateLimiter');
 const { initTransfers } = require('./transfers');
 const { initCoworker } = require('./coworker');
@@ -477,6 +481,8 @@ const views = {
     activeRooms: path.join(__dirname, '../../', 'public/views/activeRooms.html'),
     // Room Link — "email me this room link" capture + lookup-by-email page
     myRooms: path.join(__dirname, '../../', 'public/views/myRooms.html'),
+    // Meeting Notes — shareable persisted transcript + AI summary, see app/src/meetingNotes.js
+    notes: path.join(__dirname, '../../', 'public/views/notes.html'),
     customizeRoom: path.join(__dirname, '../../', 'public/views/customizeRoom.html'),
     stunTurn: path.join(__dirname, '../../', 'public/views/testStunTurn.html'),
     waitingRoom: path.join(__dirname, '../../', 'public/views/waitingRoom.html'),
@@ -1054,6 +1060,118 @@ app.post(`${apiBasePath}/rooms/claim/release`, roomClaimLimiter, (req, res) => {
         return res.status(422).json({ message: result.error });
     }
     res.json({ message: 'ok' });
+});
+
+// Meeting Notes — persisted caption/Whisper transcript + an AI-generated
+// summary and action-item list, surfaced at /notes/:id. Fired from the
+// "Share meeting notes" action in the caption panel (public/js/client.js).
+// See app/src/meetingNotes.js for the on-disk store.
+app.post(`${apiBasePath}/notes`, notesCreateLimiter, async (req, res) => {
+    const fields = checkXSS(req.body || {});
+
+    if (!fields.roomId || !Validate.isValidRoomName(fields.roomId)) {
+        return res.status(422).json({ message: 'Invalid room.' });
+    }
+
+    const result = MeetingNotes.createNote(fields, config.meetingNotes);
+    if (!result.ok) {
+        return res.status(422).json({ message: result.error });
+    }
+
+    const { record } = result;
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const url = `${origin}/notes/${record.id}`;
+    const manageUrl = `${url}?manageToken=${record.manageToken}`;
+
+    // Best-effort AI summary — the raw transcript is already saved and
+    // servable above regardless of whether this step succeeds.
+    let summaryStatus = 'unavailable';
+    if (configChatGPT.enabled && chatGPT) {
+        try {
+            const summaryMaxLines = (config.meetingNotes && config.meetingNotes.summaryMaxLines) || 400;
+            const transcriptText = record.transcripts
+                .slice(-summaryMaxLines)
+                .map((t) => `${t.name}: ${t.caption}`)
+                .join('\n');
+
+            const completion = await chatGPT.chat.completions.create({
+                model: configChatGPT.model || 'gpt-3.5-turbo',
+                messages: [
+                    {
+                        role: 'system',
+                        content:
+                            'You summarize video call transcripts. Reply with ONLY valid JSON of the exact shape ' +
+                            '{"summary": string, "actionItems": string[]} — no markdown fences, no extra text. ' +
+                            '"summary" is 3-6 concise sentences covering what was discussed and decided. ' +
+                            '"actionItems" is a short list of concrete follow-ups, including the owner\'s name ' +
+                            'when the transcript states one (empty array if none are evident).',
+                    },
+                    { role: 'user', content: transcriptText || '(empty transcript)' },
+                ],
+                max_tokens: configChatGPT.max_tokens || 800,
+                temperature: 0.3,
+            });
+
+            const raw = completion.choices[0].message.content.trim();
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch {
+                // The relay didn't return valid JSON — fall back to showing
+                // its raw reply as the summary rather than discarding it.
+                parsed = { summary: raw, actionItems: [] };
+            }
+
+            MeetingNotes.setSummary(
+                record.id,
+                {
+                    summary: typeof parsed.summary === 'string' ? parsed.summary : null,
+                    actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems : [],
+                    status: 'ready',
+                },
+                config.meetingNotes
+            );
+            summaryStatus = 'ready';
+        } catch (error) {
+            log.error('Meeting notes summary failed', { message: error?.message });
+            MeetingNotes.setSummary(
+                record.id,
+                { summary: null, actionItems: null, status: 'failed' },
+                config.meetingNotes
+            );
+            summaryStatus = 'failed';
+        }
+    } else {
+        MeetingNotes.setSummary(
+            record.id,
+            { summary: null, actionItems: null, status: 'unavailable' },
+            config.meetingNotes
+        );
+    }
+
+    res.json({ id: record.id, url, manageUrl, summaryStatus });
+});
+
+app.get(`${apiBasePath}/notes/:id`, notesViewLimiter, (req, res) => {
+    const fields = checkXSS(req.params || {});
+    const note = MeetingNotes.getNote(fields.id, config.meetingNotes);
+    if (!note) {
+        return res.status(404).json({ message: 'Not found.' });
+    }
+    res.json(note);
+});
+
+app.delete(`${apiBasePath}/notes/manage/:manageToken`, notesDeleteLimiter, (req, res) => {
+    const fields = checkXSS(req.params || {});
+    const result = MeetingNotes.deleteByManageToken(fields.manageToken, config.meetingNotes);
+    if (!result.ok) {
+        return res.status(404).json({ message: result.error });
+    }
+    res.json({ message: 'ok' });
+});
+
+app.get('/notes/:id', (req, res) => {
+    res.sendFile(views.notes);
 });
 
 // VCPeer Send "Send a link" — WeTransfer-style upload-and-share, encrypted at

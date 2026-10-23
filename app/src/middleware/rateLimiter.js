@@ -249,6 +249,40 @@ const coworkerSlackLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// Meeting Notes: saving a transcript snapshot optionally triggers an AI
+// summary call (the shared relay), so keep this tighter than a cheap
+// read-only endpoint — same shape as clipCreateLimiter.
+const notesCreateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many notes created. Please try again in an hour.' },
+    keyGenerator: getClientIP,
+});
+
+// Reading a shared /notes/:id page is unauthenticated but the id itself is
+// the secret — generous ceiling for real viewers/reloads, bounded against
+// brute-force id guessing from a single IP.
+const notesViewLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
+// Deleting via manageToken — same tight ceiling as roomClaimLimiter.
+const notesDeleteLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again later.' },
+    keyGenerator: getClientIP,
+});
+
 module.exports = {
     loginLimiter,
     createRoomTokenLimiter,
@@ -269,4 +303,7 @@ module.exports = {
     clipViewLimiter,
     coworkerMessageLimiter,
     coworkerSlackLimiter,
+    notesCreateLimiter,
+    notesViewLimiter,
+    notesDeleteLimiter,
 };

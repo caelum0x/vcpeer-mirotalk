@@ -371,6 +371,7 @@ const captionMaxBtn = getId('captionMaxBtn');
 const captionMinBtn = getId('captionMinBtn');
 const captionClean = getId('captionClean');
 const captionSaveBtn = getId('captionSaveBtn');
+const captionShareNotesBtn = getId('captionShareNotesBtn');
 const captionClose = getId('captionClose');
 const captionDropDownMenuBtn = getId('captionDropDownMenuBtn');
 const captionDropDownContent = getId('captionDropDownContent');
@@ -7796,6 +7797,14 @@ function setCaptionRoomBtn() {
             userLog('info', 'No captions to save');
         });
 
+        // persist caption transcripts server-side + get a shareable /notes/:id link
+        captionShareNotesBtn.addEventListener('click', (e) => {
+            if (transcripts.length != 0) {
+                return shareMeetingNotes();
+            }
+            userLog('info', 'No captions to share yet');
+        });
+
         // dropdown caption menu
         // Prevent drag handler on captionHeader from intercepting dropdown interactions
         captionDropDownContent.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -14096,6 +14105,62 @@ function downloadCaptions() {
     a.click();
     document.body.removeChild(a);
     playSound('download');
+}
+
+/**
+ * Persist the current caption/Whisper transcript server-side (app/src/meetingNotes.js)
+ * and surface the resulting shareable /notes/:id link — AI summary + action items are
+ * generated best-effort on the server, the raw transcript is saved regardless.
+ */
+async function shareMeetingNotes() {
+    Swal.fire({
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        background: swBg,
+        position: 'center',
+        title: 'Saving meeting notes',
+        text: 'Generating a summary and a shareable link…',
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+        const response = await axios.post('/api/v1/notes', { roomId: roomId, transcripts: transcripts });
+        const { url, manageUrl } = response.data;
+
+        await Swal.fire({
+            background: swBg,
+            position: 'center',
+            icon: 'success',
+            title: 'Meeting notes saved',
+            html:
+                '<p class="room-link-capture-hint">Share this link — it includes the transcript and, once ready, an AI summary.</p>' +
+                `<input id="meetingNotesShareInput" class="swal2-input" type="text" readonly value="${manageUrl || url}" />`,
+            confirmButtonText: 'Copy link',
+            showCancelButton: true,
+            cancelButtonText: 'Done',
+            reverseButtons: true,
+            focusConfirm: false,
+            showClass: { popup: 'animate__animated animate__fadeInDown' },
+            hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+            preConfirm: async () => {
+                try {
+                    await navigator.clipboard.writeText(manageUrl || url);
+                } catch (err) {
+                    getId('meetingNotesShareInput')?.select();
+                }
+            },
+        });
+    } catch (err) {
+        console.error('shareMeetingNotes failed:', err);
+        Swal.fire({
+            background: swBg,
+            position: 'center',
+            icon: 'error',
+            title: 'Could not save meeting notes',
+            text: err?.response?.data?.message || 'Please try again in a moment.',
+        });
+    }
 }
 
 /**
