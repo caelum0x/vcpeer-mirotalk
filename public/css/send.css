@@ -181,6 +181,30 @@
     font-size: 0.85rem;
 }
 
+.send-code-failed .send-code-value {
+    opacity: 0.35;
+}
+
+.send-code-failed .send-code-label {
+    color: var(--ds-color-warning, #e0a03c);
+}
+
+.send-code-retry {
+    display: block;
+    margin: var(--ds-space-2) auto 0;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--ds-radius-sm, 6px);
+    color: inherit;
+    font-size: 0.8rem;
+    padding: 2px 10px;
+    cursor: pointer;
+}
+
+.send-code-retry:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
 /* Manifest / file list */
 
 .send-file-list {

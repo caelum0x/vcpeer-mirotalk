@@ -184,7 +184,16 @@ function renderQrCode(url) {
     }
 }
 
-async function requestSendCode(token) {
+/**
+ * Mints the 6-digit code for the share panel. Retries once on failure (the
+ * most common cause is a transient rate-limit/network blip, not a permanent
+ * one) before falling back to a visible message — previously this silently
+ * hid the whole code widget, leaving users staring at blank space with no
+ * explanation and no way to retry.
+ * @param {string} token
+ * @param {number} attempt 1 on the first call, 2 on the retry
+ */
+async function requestSendCode(token, attempt = 1) {
     try {
         const response = await fetch(`${API_BASE}/send/code`, {
             method: 'POST',
@@ -195,9 +204,29 @@ async function requestSendCode(token) {
         if (!response.ok) throw new Error(`send/code ${response.status}`);
         const { code } = await response.json();
         el('sendCodeValue').textContent = code;
+        el('sendCodeValue').closest('.send-code').classList.remove('send-code-failed');
+        el('sendCodeLabel').textContent = 'Or enter this code on the other device at /send';
     } catch (err) {
-        console.warn('[VCPeer Send] could not mint a 6-digit code, link sharing still works', err);
-        el('sendCodeValue').closest('.send-code').hidden = true;
+        console.warn('[VCPeer Send] could not mint a 6-digit code (attempt', attempt, ')', err);
+        if (attempt < 2) {
+            setTimeout(() => requestSendCode(token, attempt + 1), 1200);
+            return;
+        }
+        const wrap = el('sendCodeValue').closest('.send-code');
+        wrap.classList.add('send-code-failed');
+        el('sendCodeValue').textContent = '------';
+        const label = el('sendCodeLabel');
+        label.textContent = 'Code unavailable right now — share the link above instead.';
+        const retryBtn = document.createElement('button');
+        retryBtn.type = 'button';
+        retryBtn.className = 'send-code-retry';
+        retryBtn.textContent = 'Retry';
+        retryBtn.addEventListener('click', () => {
+            retryBtn.remove();
+            label.textContent = 'Or enter this code on the other device at /send';
+            requestSendCode(token, 1);
+        });
+        label.after(retryBtn);
     }
 }
 
