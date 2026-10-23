@@ -46,8 +46,16 @@ one-click, no-account pitch -- the homepage is NOT the problem; distribution is.
   real category ids like `video-conferencing`, `communication`, `webrtc`) --
   the exact POST encoding that widget emits isn't present in static HTML or the
   minified JS bundle, so it cannot be completed with curl; needs a real browser
-  session. Tried installing a local headless Chromium this session; the
-  Playwright binary download stalled/never completed on this box.
+  session. A follow-up session fixed the headless Chromium install (a stale
+  Playwright lockfile from the earlier stalled download) and proved the
+  category picker IS drivable by a real browser -- Recoder's SaaSHub
+  submission completed end to end this way. But SaaSHub enforces a real
+  anti-abuse limit, "Please register to submit more than one product":
+  confirmed live by attempting VCPeer's submission in the same browser
+  session right after Recoder's, which SaaSHub genuinely blocks (no crawl, no
+  form, stuck on the rules page). Recoder used the one free anonymous slot;
+  VCPeer needs an owner SaaSHub account to submit. Real product limit, not a
+  technical gap.
 - Reddit pain-point search (`launchmaxxing pain-points`): Reddit's own
   search.json endpoints returned HTTP 403 "Blocked" to every request from this
   machine's network (tried multiple user agents, old.reddit.com, forced IPv4) --
