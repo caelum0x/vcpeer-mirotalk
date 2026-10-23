@@ -193,8 +193,12 @@ describe('saving recordings before room exit', () => {
             if (result) {
                 assert.equal(recorder.stopCount, 0);
                 survey.resolve(result);
-                await flush();
             }
+            // leaveRoom() now awaits the optional "email me this room link"
+            // prompt (maybeOfferRoomLink()) before calling exitRoom(), so even
+            // the no-survey branch needs a microtask flush before exitRoom()'s
+            // effects (recorder.stop()) are observable.
+            await flush();
             assert.equal(recorder.stopCount, 1);
             const progress = popups.at(-1);
             assert.equal(progress.position, 'center');

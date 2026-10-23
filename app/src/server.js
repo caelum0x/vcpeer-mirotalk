@@ -76,6 +76,9 @@ const Launchboard = require('./launchboard');
 const { renderLaunchboardPage } = require('./launchboardView');
 const Notify = require('./notify');
 const { renderNotifyPage } = require('./notifyView');
+const RoomLink = require('./roomLink');
+const RoomClaims = require('./roomClaims');
+const { sendMail } = require('./lib/mailClient');
 const HtmlInjector = require('./htmlInjector');
 const Host = require('./host');
 const Logs = require('./logs');
@@ -97,6 +100,10 @@ const {
     sendCodeResolveLimiter,
     launchboardSubmitLimiter,
     notifySubmitLimiter,
+    roomLinkEmailLimiter,
+    roomLinkLookupLimiter,
+    roomClaimLimiter,
+    roomClaimStatusLimiter,
 } = require('./middleware/rateLimiter');
 const { initTransfers } = require('./transfers');
 const { initCoworker } = require('./coworker');
@@ -468,6 +475,8 @@ const views = {
     notFound: path.join(__dirname, '../../', 'public/views/404.html'),
     privacy: path.join(__dirname, '../../', 'public/views/privacy.html'),
     activeRooms: path.join(__dirname, '../../', 'public/views/activeRooms.html'),
+    // Room Link — "email me this room link" capture + lookup-by-email page
+    myRooms: path.join(__dirname, '../../', 'public/views/myRooms.html'),
     customizeRoom: path.join(__dirname, '../../', 'public/views/customizeRoom.html'),
     stunTurn: path.join(__dirname, '../../', 'public/views/testStunTurn.html'),
     waitingRoom: path.join(__dirname, '../../', 'public/views/waitingRoom.html'),
@@ -504,6 +513,7 @@ const filesPath = [
     views.client,
     views.login,
     views.activeRooms,
+    views.myRooms,
     views.customizeRoom,
     views.waitingRoom,
 ];
@@ -518,12 +528,57 @@ const wbParticipantNames = {}; // presenter-controlled whiteboard participant at
 const videoTextAnnotations = {}; // persistent screen text annotation state grp by channels
 const videoDrawingAnnotations = {}; // persistent screen drawing annotation state grp by channels
 const videoDrawingPermissions = {};
+// Lobby (knock-to-join): guests awaiting an explicit host admit/reject, grp by
+// channel then by their own socket.id. Never promoted into `peers[roomId]`
+// until admitted, so they're invisible to WebRTC wiring / peer counts / the
+// "room is active" check until the host lets them in.
+const lobbyPending = {};
 
-const roomMetaKeys = new Set(['lock', 'password', 'joinLock']);
+const roomMetaKeys = new Set(['lock', 'password', 'joinLock', 'lobby']);
 
 function getPeerCount(roomId) {
     if (!peers[roomId]) return 0;
     return Object.keys(peers[roomId]).filter((k) => !roomMetaKeys.has(k)).length;
+}
+
+/**
+ * @param {string} room_id
+ * @returns {Array<{peer_id: string, peer_name: string, peer_avatar: string, requestedAt: number}>}
+ *   guests currently knocking, oldest first.
+ */
+function getLobbyPendingList(room_id) {
+    const pending = lobbyPending[room_id];
+    if (!pending) return [];
+    return Object.values(pending)
+        .map(({ peer_id, peer_name, peer_avatar, requestedAt }) => ({ peer_id, peer_name, peer_avatar, requestedAt }))
+        .sort((a, b) => a.requestedAt - b.requestedAt);
+}
+
+/**
+ * Push the current knock queue to every presenter currently in the room, so
+ * a host sees "guests waiting" update live without polling. Targets every
+ * peer flagged `peer_presenter: true` (not just the narrower room-creation
+ * bookkeeping map in `presenters[room_id]`), so it reaches multi-presenter
+ * rooms too.
+ * @param {string} room_id
+ */
+function broadcastLobbyUpdate(room_id) {
+    const pendingList = getLobbyPendingList(room_id);
+    const roomPeers = peers[room_id] || {};
+    for (const [peerId, info] of Object.entries(roomPeers)) {
+        if (roomMetaKeys.has(peerId) || !info || info.peer_presenter !== true) continue;
+        sockets[peerId]?.emit('lobbyUpdate', { room_id, pending: pendingList });
+    }
+}
+
+/**
+ * @param {string} room_id
+ * @param {string} peer_id
+ */
+function clearLobbyPending(room_id, peer_id) {
+    if (!lobbyPending[room_id]) return;
+    delete lobbyPending[room_id][peer_id];
+    if (Object.keys(lobbyPending[room_id]).length === 0) delete lobbyPending[room_id];
 }
 
 app.set('trust proxy', trustProxy); // Enables trust for proxy headers (e.g., X-Forwarded-For) based on the trustProxy setting
@@ -919,6 +974,86 @@ app.post('/notify/submit', notifySubmitLimiter, (req, res) => {
     }
 
     res.redirect(303, '/notify?submitted=1');
+});
+
+// Room Link — "email me this room link" capture, fired from the post-call
+// feedback flow (public/js/client.js leaveFeedback()), plus a no-login
+// /my-rooms lookup page. See STRATEGY-2026-10-23.md Section 5.
+app.post(`${apiBasePath}/room-link/email`, roomLinkEmailLimiter, async (req, res) => {
+    const fields = checkXSS(req.body || {});
+    const { email, roomId } = fields;
+
+    if (!roomId || !Validate.isValidRoomName(roomId)) {
+        return res.status(422).json({ message: 'Invalid room.' });
+    }
+
+    const roomUrl = `${req.protocol}://${req.get('host')}/join/${encodeURIComponent(roomId)}`;
+    const result = RoomLink.saveRoomLink({ email, roomId, roomUrl });
+
+    if (!result.ok) {
+        return res.status(422).json({ message: result.error });
+    }
+
+    // Best-effort: the link is already captured for /my-rooms lookup even if
+    // mail isn't configured on this deployment (see app/src/lib/mailClient.js),
+    // so a missing MAIL_API_URL/MAIL_API_KEY never blocks the capture itself.
+    const myRoomsUrl = `${req.protocol}://${req.get('host')}/my-rooms?email=${encodeURIComponent(email)}`;
+    const emailContent = RoomLink.buildRoomLinkEmail({ roomUrl, roomId, myRoomsUrl });
+    const mailResult = await sendMail({
+        to: [email],
+        subject: emailContent.subject,
+        html: emailContent.html,
+        text: emailContent.text,
+    });
+
+    res.json({ message: 'ok', emailed: mailResult.sent });
+});
+
+app.post(`${apiBasePath}/room-link/lookup`, roomLinkLookupLimiter, (req, res) => {
+    const fields = checkXSS(req.body || {});
+    const links = RoomLink.getLinksForEmail(fields.email);
+    res.json({ links });
+});
+
+app.get('/my-rooms', (req, res) => {
+    htmlInjector.injectHtml(views.myRooms, res);
+});
+
+// Durable named rooms — claim a specific room name + a fixed recurring
+// passcode, enforced on every future join to that name (see
+// app/src/roomClaims.js and the socket 'join' handler below). Surfaced on
+// /customizeRoom (public/js/customizeRoom.js).
+app.get(`${apiBasePath}/rooms/claim/status`, roomClaimStatusLimiter, (req, res) => {
+    const fields = checkXSS(req.query || {});
+    res.json({ claimed: RoomClaims.isClaimed(fields.roomId) });
+});
+
+app.post(`${apiBasePath}/rooms/claim`, roomClaimLimiter, (req, res) => {
+    const fields = checkXSS(req.body || {});
+
+    if (!fields.roomId || !Validate.isValidRoomName(fields.roomId)) {
+        return res.status(422).json({ message: 'Invalid room name.' });
+    }
+
+    const result = RoomClaims.claimRoom(fields);
+    if (!result.ok) {
+        return res.status(422).json({ message: result.error });
+    }
+    res.json({ message: 'ok', claim: result.claim });
+});
+
+app.post(`${apiBasePath}/rooms/claim/release`, roomClaimLimiter, (req, res) => {
+    const fields = checkXSS(req.body || {});
+
+    if (!fields.roomId || !Validate.isValidRoomName(fields.roomId)) {
+        return res.status(422).json({ message: 'Invalid room name.' });
+    }
+
+    const result = RoomClaims.releaseClaim(fields.roomId, fields.passcode);
+    if (!result.ok) {
+        return res.status(422).json({ message: result.error });
+    }
+    res.json({ message: 'ok' });
 });
 
 // VCPeer Send "Send a link" — WeTransfer-style upload-and-share, encrypted at
@@ -1664,6 +1799,12 @@ io.sockets.on('connect', async (socket) => {
         for (let channel in socket.channels) {
             await removePeerFrom(channel, socket, reason);
         }
+        // A knocking guest that closes the tab (or loses connection) before
+        // the host decides must not linger in the Lobby queue forever.
+        if (socket.lobbyPendingChannel) {
+            clearLobbyPending(socket.lobbyPendingChannel, socket.id);
+            broadcastLobbyUpdate(socket.lobbyPendingChannel);
+        }
         log.debug('[' + socket.id + '] disconnected', { reason: reason });
         delete sockets[socket.id];
     });
@@ -1926,6 +2067,29 @@ io.sockets.on('connect', async (socket) => {
             RoomPassword.recordSuccess(peer_ip, channel);
         }
 
+        // Durable named room (see app/src/roomClaims.js and POST
+        // /api/v1/rooms/claim): a fixed, persistent passcode enforced on
+        // EVERY join to this room name, independent of the ephemeral
+        // RoomPassword lock above — even the very first joiner of a brand
+        // new session needs it, since the whole point is a recurring link
+        // that always requires the same passcode.
+        const roomClaim = RoomClaims.verify(channel, channel_password);
+        if (roomClaim.claimed) {
+            if (RoomPassword.isBlocked(peer_ip, channel)) {
+                log.warn('[' + socket.id + '] [Warning] Claimed-room passcode attempts blocked', {
+                    ip: peer_ip,
+                    channel,
+                });
+                return socket.emit('roomIsLocked');
+            }
+            if (!roomClaim.ok) {
+                RoomPassword.recordFailure(peer_ip, channel);
+                log.debug('[' + socket.id + '] [Warning] Claimed room, wrong passcode', channel);
+                return socket.emit('roomIsLocked');
+            }
+            RoomPassword.recordSuccess(peer_ip, channel);
+        }
+
         // Set the presenters
         const presenter = {
             peer_ip: peer_ip,
@@ -1976,87 +2140,29 @@ io.sockets.on('connect', async (socket) => {
             return socket.emit('roomIsJoinLocked');
         }
 
-        // Some peer info data
-        const { osName, osVersion, browserName, browserVersion, extras } = peer_info;
-
-        // collect peers info grp by channels
-        peers[channel][socket.id] = {
-            peer_name: peer_name,
-            peer_avatar: peer_avatar,
-            peer_presenter: isPresenter,
-            peer_video: peer_video,
-            peer_audio: peer_audio,
-            peer_video_status: peer_video_status,
-            peer_audio_status: peer_audio_status,
-            peer_screen_status: peer_screen_status,
-            peer_hand_status: peer_hand_status,
-            peer_rec_status: peer_rec_status,
-            peer_privacy_status: peer_privacy_status,
-            os: osName ? `${osName} ${osVersion}` : '',
-            browser: browserName ? `${browserName} ${browserVersion}` : '',
-            extras: extras,
-        };
-
-        const activeRooms = getActiveRooms();
-
-        log.debug('[Join] - active rooms and peers count', activeRooms);
-
-        log.debug('[Join] - connected presenters grp by roomId', presenters);
-
-        log.debug('[Join] - connected peers grp by roomId', peers);
-
-        await addPeerTo(channel);
-
-        channels[channel][socket.id] = socket;
-        socket.channels[channel] = channel;
-
-        const peerCounts = getPeerCount(channel);
-
-        // Send some server info to joined peer
-        await sendToPeer(socket.id, sockets, 'serverInfo', {
-            peers_count: peerCounts,
-            host_protected: hostCfg.protected,
-            user_auth: hostCfg.user_auth,
-            is_presenter: isPresenter,
-            join_locked: peers[channel]['joinLock'] === true,
-            survey: {
-                active: surveyEnabled,
-                url: surveyURL,
-            },
-            redirect: {
-                active: redirectEnabled,
-                url: redirectURL,
-            },
-            maxRoomParticipants: hostCfg.maxRoomParticipants,
-            // Whisper is exposed as a capability flag + segment length only.
-            // The API key/basePath are server-side secrets and are never sent.
-            whisper: {
-                enabled: configWhisper.enabled,
-                segmentSeconds: configWhisper.segmentSeconds,
-            },
-            //...
-        });
-
-        // SCENARIO: Notify when the first user join room and is awaiting assistance...
-        if (peerCounts === 1) {
-            nodemailer.sendEmailAlert('join', {
-                room_id: channel,
+        // Lobby (knock-to-join): when the host has turned this on, a guest who
+        // isn't the presenter must wait for an explicit admit/reject instead of
+        // joining immediately. Never gates the very first peer of a brand-new
+        // room (always the presenter) or an auth-elected presenter — only
+        // ordinary non-presenter guests knock.
+        if (peers[channel]['lobby'] === true && !isPresenter) {
+            if (!lobbyPending[channel]) lobbyPending[channel] = {};
+            lobbyPending[channel][socket.id] = {
+                peer_id: socket.id,
                 peer_name: peer_name,
-                domain: socket.handshake.headers.host.split(':')[0],
-                os: osName ? `${osName} ${osVersion}` : '',
-                browser: browserName ? `${browserName} ${browserVersion}` : '',
-            }); // .env EMAIL_ALERT=true
+                peer_avatar: peer_avatar,
+                peer_uuid: peer_uuid,
+                requestedAt: Date.now(),
+                config: config,
+            };
+            socket.lobbyPendingChannel = channel;
+            socket.emit('knockPending', { room_id: channel });
+            broadcastLobbyUpdate(channel);
+            log.debug('[' + socket.id + '] knocking, awaiting host admission', channel);
+            return;
         }
 
-        // Handle WebHook
-        if (webhook.enabled) {
-            // Trigger a POST request when a user joins
-            config.timestamp = log.getDateTime(false);
-            axios
-                .post(webhook.url, { event: 'join', data: config }, { timeout: 5000 }) // 5 second timeout
-                .then((response) => log.debug('Join event tracked:', response.data))
-                .catch((error) => log.error('Error tracking join event:', error.message));
-        }
+        await completeJoin(channel, socket, config, isPresenter);
     });
 
     /**
@@ -2120,7 +2226,12 @@ io.sockets.on('connect', async (socket) => {
         //log.debug('[' + socket.id + '] Room action:', config);
         const { room_id, peer_name, peer_uuid, password, action } = config;
 
-        if (!peers[room_id]) {
+        // 'checkPassword' is a pre-join check and must work even for a room
+        // nobody has opened yet this session (peers[room_id] doesn't exist) —
+        // a durable claimed room (app/src/roomClaims.js) can require a
+        // passcode with zero live peers. Every other action legitimately
+        // requires an already-joined room.
+        if (action !== 'checkPassword' && !peers[room_id]) {
             log.warn('Room action room not found', { peer_id: socket.id, room_id });
             return;
         }
@@ -2168,19 +2279,59 @@ io.sockets.on('connect', async (socket) => {
                         action: action,
                     });
                     break;
+                case 'lobbyOn':
+                    if (!isPresenter) return;
+                    peers[room_id]['lobby'] = true;
+                    await sendToRoom(room_id, socket.id, 'roomAction', {
+                        peer_name: peer_name,
+                        action: action,
+                    });
+                    break;
+                case 'lobbyOff': {
+                    if (!isPresenter) return;
+                    delete peers[room_id]['lobby'];
+                    // Turning the Lobby off is an explicit "let everyone in"
+                    // signal — admit everyone currently knocking instead of
+                    // silently dropping their request.
+                    const stillWaiting = Object.values(lobbyPending[room_id] || {});
+                    delete lobbyPending[room_id];
+                    broadcastLobbyUpdate(room_id);
+                    for (const entry of stillWaiting) {
+                        const guestSocket = sockets[entry.peer_id];
+                        if (!guestSocket || !guestSocket.connected) continue;
+                        delete guestSocket.lobbyPendingChannel;
+                        guestSocket.emit('knockAdmitted', { room_id });
+                        await completeJoin(room_id, guestSocket, entry.config, false);
+                    }
+                    await sendToRoom(room_id, socket.id, 'roomAction', {
+                        peer_name: peer_name,
+                        action: action,
+                    });
+                    break;
+                }
                 case 'checkPassword': {
-                    // Pre-join check, so the sender is not a room member: throttle guesses per IP + room
+                    // Pre-join check, so the sender is not a room member yet, and
+                    // (for a durable claimed room, app/src/roomClaims.js) the room
+                    // may not even exist in peers{} this session: throttle guesses
+                    // per IP + room regardless.
                     const ip = getSocketIP(socket);
-                    const locked = peers[room_id]['lock'] === true;
+                    const ephemeralLocked = !!peers[room_id] && peers[room_id]['lock'] === true;
+                    const claim = RoomClaims.verify(room_id, password);
+                    const passwordRequired = ephemeralLocked || claim.claimed;
                     let result = 'OK';
-                    if (locked) {
+                    if (passwordRequired) {
                         if (RoomPassword.isBlocked(ip, room_id)) {
                             result = 'KO';
-                        } else if (RoomPassword.passwordMatches(password, peers[room_id]['password'])) {
-                            RoomPassword.recordSuccess(ip, room_id);
                         } else {
-                            RoomPassword.recordFailure(ip, room_id);
-                            result = 'KO';
+                            const ephemeralOk =
+                                !ephemeralLocked || RoomPassword.passwordMatches(password, peers[room_id]['password']);
+                            const claimOk = !claim.claimed || claim.ok;
+                            if (ephemeralOk && claimOk) {
+                                RoomPassword.recordSuccess(ip, room_id);
+                            } else {
+                                RoomPassword.recordFailure(ip, room_id);
+                                result = 'KO';
+                            }
                         }
                     }
                     const data = {
@@ -2198,6 +2349,70 @@ io.sockets.on('connect', async (socket) => {
             log.error('Room action', toJson(err));
         }
         log.debug('[' + socket.id + '] Room ' + room_id, { locked: room_is_locked });
+    });
+
+    /**
+     * Host admits a guest knocking in the Lobby — completes their deferred
+     * join exactly as if the Lobby had been off, using the 'join' payload
+     * captured at knock time.
+     */
+    socket.on('admitGuest', async (cfg) => {
+        const config = checkXSS(cfg);
+        if (!Validate.isValidData(config)) return;
+
+        const { room_id, peer_id, peer_name, peer_uuid } = config;
+        if (!room_id || !peer_id) return;
+
+        // Server-controlled socket.id authorization, same pattern as roomAction.
+        if (!isPeerPresenter(room_id, socket.id, peer_name, peer_uuid)) {
+            log.warn('[' + socket.id + '] admitGuest denied: caller is not presenter', { room_id, peer_id });
+            return;
+        }
+
+        const entry = lobbyPending[room_id] && lobbyPending[room_id][peer_id];
+        if (!entry) return; // already decided, or the guest left
+
+        clearLobbyPending(room_id, peer_id);
+        broadcastLobbyUpdate(room_id);
+
+        const guestSocket = sockets[peer_id];
+        if (!guestSocket || !guestSocket.connected) {
+            log.debug('[admitGuest] knocking guest already disconnected', { room_id, peer_id });
+            return;
+        }
+        delete guestSocket.lobbyPendingChannel;
+        guestSocket.emit('knockAdmitted', { room_id });
+        await completeJoin(room_id, guestSocket, entry.config, false);
+        log.debug('[' + socket.id + '] admitted guest [' + peer_id + '] into ' + room_id);
+    });
+
+    /**
+     * Host rejects a guest knocking in the Lobby.
+     */
+    socket.on('rejectGuest', async (cfg) => {
+        const config = checkXSS(cfg);
+        if (!Validate.isValidData(config)) return;
+
+        const { room_id, peer_id, peer_name, peer_uuid } = config;
+        if (!room_id || !peer_id) return;
+
+        if (!isPeerPresenter(room_id, socket.id, peer_name, peer_uuid)) {
+            log.warn('[' + socket.id + '] rejectGuest denied: caller is not presenter', { room_id, peer_id });
+            return;
+        }
+
+        const entry = lobbyPending[room_id] && lobbyPending[room_id][peer_id];
+        if (!entry) return;
+
+        clearLobbyPending(room_id, peer_id);
+        broadcastLobbyUpdate(room_id);
+
+        const guestSocket = sockets[peer_id];
+        if (guestSocket && guestSocket.connected) {
+            delete guestSocket.lobbyPendingChannel;
+            guestSocket.emit('knockRejected', { room_id });
+        }
+        log.debug('[' + socket.id + '] rejected guest [' + peer_id + ']');
     });
 
     /**
@@ -3260,39 +3475,6 @@ io.sockets.on('connect', async (socket) => {
     });
 
     /**
-     * Add peers to channel
-     * @param {string} channel room id
-     */
-    async function addPeerTo(channel) {
-        for (let id in channels[channel]) {
-            // offer false
-            await channels[channel][id].emit('addPeer', {
-                peer_id: socket.id,
-                peers: peers[channel],
-                should_create_offer: false,
-                iceServers: iceServers,
-            });
-            // offer true
-            socket.emit('addPeer', {
-                peer_id: id,
-                peers: peers[channel],
-                should_create_offer: true,
-                iceServers: iceServers,
-            });
-            log.debug('[' + socket.id + '] emit addPeer [' + id + ']');
-        }
-        for (const [screenOwnerId, allowed] of videoDrawingPermissions[channel] || []) {
-            socket.emit('videoDrawing', { type: 'permissions', screenOwnerId, allowed });
-        }
-        for (const annotation of videoTextAnnotations[channel]?.values() || []) {
-            socket.emit('videoDrawing', { type: 'text', action: 'create', ...annotation });
-        }
-        for (const annotation of videoDrawingAnnotations[channel]?.values() || []) {
-            socket.emit('videoDrawing', { type: 'annotation', action: 'create', ...annotation });
-        }
-    }
-
-    /**
      * Remove peers from channel
      * @param {string} channel room id
      */
@@ -3355,6 +3537,7 @@ io.sockets.on('connect', async (socket) => {
                 delete videoTextAnnotations[channel]; // Clean up persistent screen annotation state
                 delete videoDrawingAnnotations[channel]; // Clean up persistent screen drawing state
                 delete videoDrawingPermissions[channel];
+                delete lobbyPending[channel]; // Clean up any guests still knocking with nobody left to admit them
                 SendCode.release(channel); // VCPeer Send: room emptied out, retire its 6-digit code (if any)
             }
         } catch (err) {
@@ -3503,6 +3686,155 @@ function isPeerInSameRoom(socket, target_id, room_id) {
         return isPeerInRoom(room_id, socket.id) && isPeerInRoom(room_id, target_id);
     }
     return Object.keys(socket.channels).some((ch) => isPeerInRoom(ch, socket.id) && isPeerInRoom(ch, target_id));
+}
+
+/**
+ * WebRTC peer-wiring half of completeJoin: tell every existing room member
+ * about the new peer (and vice versa), then replay any persisted whiteboard/
+ * screen-annotation state to the new peer. Parameterized by target socket
+ * (instead of hardcoding the connect-handler's own closure socket) so it can
+ * run for a guest admitted later by the host, not just for a peer joining
+ * inline — see completeJoin below.
+ * @param {string} channel room id
+ * @param {object} targetSocket the peer being wired in
+ */
+async function addPeerToForSocket(channel, targetSocket) {
+    for (let id in channels[channel]) {
+        await channels[channel][id].emit('addPeer', {
+            peer_id: targetSocket.id,
+            peers: peers[channel],
+            should_create_offer: false,
+            iceServers: iceServers,
+        });
+        targetSocket.emit('addPeer', {
+            peer_id: id,
+            peers: peers[channel],
+            should_create_offer: true,
+            iceServers: iceServers,
+        });
+        log.debug('[' + targetSocket.id + '] emit addPeer [' + id + ']');
+    }
+    for (const [screenOwnerId, allowed] of videoDrawingPermissions[channel] || []) {
+        targetSocket.emit('videoDrawing', { type: 'permissions', screenOwnerId, allowed });
+    }
+    for (const annotation of videoTextAnnotations[channel]?.values() || []) {
+        targetSocket.emit('videoDrawing', { type: 'text', action: 'create', ...annotation });
+    }
+    for (const annotation of videoDrawingAnnotations[channel]?.values() || []) {
+        targetSocket.emit('videoDrawing', { type: 'annotation', action: 'create', ...annotation });
+    }
+}
+
+/**
+ * Complete a peer's join into a room: WebRTC peer wiring, the serverInfo
+ * handshake, and join side-effects (first-peer email alert, webhook). This
+ * is the second half of socket 'join' — split out so it can run either
+ * immediately (Lobby disabled, or this peer IS the presenter) or later, once
+ * a host admits a knocking guest through the Lobby (see socket 'admitGuest').
+ * @param {string} channel room id
+ * @param {object} peerSocket the joining peer's own socket (never the admitting host's socket)
+ * @param {object} config the already-XSS-sanitized 'join' payload for this peer
+ * @param {boolean} isPresenter
+ */
+async function completeJoin(channel, peerSocket, config, isPresenter) {
+    const {
+        peer_name,
+        peer_avatar,
+        peer_video,
+        peer_audio,
+        peer_video_status,
+        peer_audio_status,
+        peer_screen_status,
+        peer_hand_status,
+        peer_rec_status,
+        peer_privacy_status,
+        peer_info,
+    } = config;
+
+    const { osName, osVersion, browserName, browserVersion, extras } = peer_info || {};
+
+    // collect peers info grp by channels
+    peers[channel][peerSocket.id] = {
+        peer_name: peer_name,
+        peer_avatar: peer_avatar,
+        peer_presenter: isPresenter,
+        peer_video: peer_video,
+        peer_audio: peer_audio,
+        peer_video_status: peer_video_status,
+        peer_audio_status: peer_audio_status,
+        peer_screen_status: peer_screen_status,
+        peer_hand_status: peer_hand_status,
+        peer_rec_status: peer_rec_status,
+        peer_privacy_status: peer_privacy_status,
+        os: osName ? `${osName} ${osVersion}` : '',
+        browser: browserName ? `${browserName} ${browserVersion}` : '',
+        extras: extras,
+    };
+
+    log.debug('[Join] - active rooms and peers count', getActiveRooms());
+    log.debug('[Join] - connected presenters grp by roomId', presenters);
+    log.debug('[Join] - connected peers grp by roomId', peers);
+
+    await addPeerToForSocket(channel, peerSocket);
+
+    channels[channel][peerSocket.id] = peerSocket;
+    peerSocket.channels[channel] = channel;
+
+    const peerCounts = getPeerCount(channel);
+
+    // Send some server info to joined peer. (sendToPeer() is a connect-handler
+    // closure helper and isn't reachable from this module-level function —
+    // peerSocket.emit() is the same thing peer_id-addressed sendToPeer would do.)
+    peerSocket.emit('serverInfo', {
+        peers_count: peerCounts,
+        host_protected: hostCfg.protected,
+        user_auth: hostCfg.user_auth,
+        is_presenter: isPresenter,
+        join_locked: peers[channel]['joinLock'] === true,
+        survey: {
+            active: surveyEnabled,
+            url: surveyURL,
+        },
+        redirect: {
+            active: redirectEnabled,
+            url: redirectURL,
+        },
+        maxRoomParticipants: hostCfg.maxRoomParticipants,
+        // Whisper is exposed as a capability flag + segment length only.
+        // The API key/basePath are server-side secrets and are never sent.
+        whisper: {
+            enabled: configWhisper.enabled,
+            segmentSeconds: configWhisper.segmentSeconds,
+        },
+        //...
+    });
+
+    // A (re)joining presenter should see the current knock queue immediately,
+    // not only on the next change.
+    if (isPresenter) {
+        peerSocket.emit('lobbyUpdate', { room_id: channel, pending: getLobbyPendingList(channel) });
+    }
+
+    // SCENARIO: Notify when the first user join room and is awaiting assistance...
+    if (peerCounts === 1) {
+        nodemailer.sendEmailAlert('join', {
+            room_id: channel,
+            peer_name: peer_name,
+            domain: peerSocket.handshake.headers.host.split(':')[0],
+            os: osName ? `${osName} ${osVersion}` : '',
+            browser: browserName ? `${browserName} ${browserVersion}` : '',
+        }); // .env EMAIL_ALERT=true
+    }
+
+    // Handle WebHook
+    if (webhook.enabled) {
+        // Trigger a POST request when a user joins
+        config.timestamp = log.getDateTime(false);
+        axios
+            .post(webhook.url, { event: 'join', data: config }, { timeout: 5000 }) // 5 second timeout
+            .then((response) => log.debug('Join event tracked:', response.data))
+            .catch((error) => log.error('Error tracking join event:', error.message));
+    }
 }
 
 /**

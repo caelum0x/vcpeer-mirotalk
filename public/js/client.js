@@ -543,6 +543,8 @@ const lockRoomBtn = getId('lockRoomBtn');
 const unlockRoomBtn = getId('unlockRoomBtn');
 const joinLockBtn = getId('joinLockBtn');
 const joinUnlockBtn = getId('joinUnlockBtn');
+const lobbyOnBtn = getId('lobbyOnBtn');
+const lobbyOffBtn = getId('lobbyOffBtn');
 
 // File send progress
 const sendFileDiv = getId('sendFileDiv');
@@ -818,6 +820,8 @@ let isMySettingsVisible = false;
 let thisRoomPassword = null;
 let isRoomLocked = false;
 let isJoinLocked = false;
+let isLobbyEnabled = false; // host-controlled knock-to-join (waiting room), see handleRoomStatus 'lobbyOn'/'lobbyOff'
+let lobbyPendingGuests = []; // current knock queue, as last pushed by the server's 'lobbyUpdate'
 let isKeepButtonsVisible = false;
 let isAudioPitchBar = true;
 let isPushToTalkActive = false;
@@ -1599,6 +1603,12 @@ async function initClientPeer() {
     signalingSocket.on('roomIsLocked', handleUnlockTheRoom);
     signalingSocket.on('roomIsJoinLocked', handleRoomJoinLocked);
     signalingSocket.on('roomAction', handleRoomAction);
+    // Lobby (knock-to-join): guest-side state
+    signalingSocket.on('knockPending', handleKnockPending);
+    signalingSocket.on('knockAdmitted', handleKnockAdmitted);
+    signalingSocket.on('knockRejected', handleKnockRejected);
+    // Lobby: host-side "guests waiting" push
+    signalingSocket.on('lobbyUpdate', handleLobbyUpdate);
     signalingSocket.on('addPeer', handleAddPeer);
     signalingSocket.on('serverInfo', handleServerInfo);
     signalingSocket.on('sessionDescription', handleSessionDescription);
@@ -1938,6 +1948,7 @@ function handleButtonsRule() {
     ]);
 
     updateJoinLockButtons();
+    updateLobbyButtons();
 
     // Whiteboard
     elemDisplay(
@@ -9263,6 +9274,12 @@ function setupMySettings() {
     joinUnlockBtn.addEventListener('click', (e) => {
         confirmJoinLock(false);
     });
+    lobbyOnBtn.addEventListener('click', (e) => {
+        handleRoomAction({ action: 'lobbyOn' }, true);
+    });
+    lobbyOffBtn.addEventListener('click', (e) => {
+        handleRoomAction({ action: 'lobbyOff' }, true);
+    });
 }
 
 /**
@@ -15571,6 +15588,8 @@ function handleRoomAction(config, emit = false) {
                 break;
             case 'joinLockOn':
             case 'joinLockOff':
+            case 'lobbyOn':
+            case 'lobbyOff':
                 sendToServer('roomAction', thisConfig);
                 handleRoomStatus(thisConfig);
                 break;
@@ -15633,6 +15652,25 @@ function handleRoomStatus(config) {
             updateJoinLockButtons();
             screenReaderAccessibility.announceMessage(`${peer_name} unlocked the room for new participants`);
             break;
+        case 'lobbyOn':
+            playSound('newMessage');
+            userLog(
+                'toast',
+                `${icons.user} ${peer_name} turned ON the waiting room — new guests need approval to join`,
+                'top',
+                6000
+            );
+            isLobbyEnabled = true;
+            updateLobbyButtons();
+            screenReaderAccessibility.announceMessage(`${peer_name} turned on the waiting room`);
+            break;
+        case 'lobbyOff':
+            userLog('toast', `${icons.user} ${peer_name} turned OFF the waiting room`, 'top', 6000);
+            isLobbyEnabled = false;
+            updateLobbyButtons();
+            renderLobbyPendingGuests([]);
+            screenReaderAccessibility.announceMessage(`${peer_name} turned off the waiting room`);
+            break;
         default:
             break;
     }
@@ -15645,6 +15683,180 @@ function updateJoinLockButtons() {
     const canLock = buttons.settings.showJoinLockBtn && (isPresenter || !isRulesActive);
     elemDisplay(joinLockBtn, canLock && !isJoinLocked);
     elemDisplay(joinUnlockBtn, canLock && isJoinLocked);
+}
+
+/**
+ * Show the lobby on/off button according to the current room state. Reuses
+ * the same permission flag as the join-lock buttons (showJoinLockBtn) —
+ * whoever can lock the room for new joiners can also require host approval.
+ */
+function updateLobbyButtons() {
+    const canToggle = buttons.settings.showJoinLockBtn && (isPresenter || !isRulesActive);
+    elemDisplay(lobbyOnBtn, canToggle && !isLobbyEnabled);
+    elemDisplay(lobbyOffBtn, canToggle && isLobbyEnabled);
+}
+
+/**
+ * Lazily create the floating "guests waiting" panel (host-side), appended
+ * directly to <body> so it doesn't depend on the (fairly involved) existing
+ * chat/participants panel DOM structure.
+ * @returns {HTMLElement}
+ */
+function getOrCreateLobbyPanel() {
+    let panel = getId('lobbyWaitingPanel');
+    if (panel) return panel;
+
+    panel = document.createElement('div');
+    panel.id = 'lobbyWaitingPanel';
+    panel.className = 'lobby-waiting-panel';
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', 'Guests waiting to join');
+
+    const header = document.createElement('div');
+    header.className = 'lobby-waiting-panel-header';
+    header.innerHTML = '<i class="fa-solid fa-user-clock" aria-hidden="true"></i><span>Waiting to join</span>';
+
+    const list = document.createElement('div');
+    list.id = 'lobbyWaitingPanelList';
+    list.className = 'lobby-waiting-panel-list';
+
+    panel.appendChild(header);
+    panel.appendChild(list);
+    document.body.appendChild(panel);
+    return panel;
+}
+
+/**
+ * Render the current knock queue for the host. No-op (and hidden) for
+ * anyone who isn't the presenter, or once the queue is empty.
+ * @param {Array<{peer_id:string, peer_name:string, peer_avatar:string, requestedAt:number}>} pending
+ */
+function renderLobbyPendingGuests(pending) {
+    lobbyPendingGuests = Array.isArray(pending) ? pending : [];
+
+    if (!isPresenter || lobbyPendingGuests.length === 0) {
+        const existingPanel = getId('lobbyWaitingPanel');
+        if (existingPanel) elemDisplay(existingPanel, false);
+        return;
+    }
+
+    const panel = getOrCreateLobbyPanel();
+    const list = getId('lobbyWaitingPanelList');
+    list.innerHTML = '';
+
+    lobbyPendingGuests.forEach((guest) => {
+        const item = document.createElement('div');
+        item.className = 'lobby-waiting-item';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'lobby-waiting-name';
+        nameEl.textContent = guest.peer_name || 'Guest';
+
+        const actions = document.createElement('div');
+        actions.className = 'lobby-waiting-actions';
+
+        const admitBtn = document.createElement('button');
+        admitBtn.type = 'button';
+        admitBtn.className = 'lobby-admit-btn';
+        admitBtn.setAttribute('aria-label', 'Admit ' + (guest.peer_name || 'guest'));
+        admitBtn.title = 'Admit';
+        admitBtn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>';
+        admitBtn.addEventListener('click', () => decideKnock(guest.peer_id, true));
+
+        const rejectBtn = document.createElement('button');
+        rejectBtn.type = 'button';
+        rejectBtn.className = 'lobby-reject-btn';
+        rejectBtn.setAttribute('aria-label', 'Decline ' + (guest.peer_name || 'guest'));
+        rejectBtn.title = 'Decline';
+        rejectBtn.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+        rejectBtn.addEventListener('click', () => decideKnock(guest.peer_id, false));
+
+        actions.appendChild(admitBtn);
+        actions.appendChild(rejectBtn);
+        item.appendChild(nameEl);
+        item.appendChild(actions);
+        list.appendChild(item);
+    });
+
+    elemDisplay(panel, true, 'flex');
+}
+
+/**
+ * Host decision on a single knocking guest.
+ * @param {string} peer_id
+ * @param {boolean} admit
+ */
+function decideKnock(peer_id, admit) {
+    sendToServer(admit ? 'admitGuest' : 'rejectGuest', {
+        room_id: roomId,
+        peer_id: peer_id,
+        peer_name: myPeerName,
+        peer_uuid: myPeerUUID,
+    });
+}
+
+/**
+ * Host-side: server pushed the current knock queue (new knock, or a
+ * decision that changed it).
+ * @param {{room_id: string, pending: Array<object>}} config
+ */
+function handleLobbyUpdate(config) {
+    if (!config || config.room_id !== roomId) return;
+    const previousCount = lobbyPendingGuests.length;
+    renderLobbyPendingGuests(config.pending);
+    if (Array.isArray(config.pending) && config.pending.length > previousCount) {
+        playSound('newMessage');
+        screenReaderAccessibility.announceMessage('A guest is waiting to join');
+    }
+}
+
+/**
+ * Guest-side: the room has a waiting room on and this join is now queued
+ * for the host's approval. Blocks entering the call UI until a decision
+ * arrives (knockAdmitted / knockRejected).
+ */
+function handleKnockPending() {
+    playSound('newMessage');
+    Swal.fire({
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        background: swBg,
+        title: 'Waiting for the host',
+        html: 'The host will let you in soon. Keep this tab open.',
+        showConfirmButton: false,
+        showClass: { popup: 'animate__animated animate__fadeInDown' },
+        hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+        didOpen: () => Swal.showLoading(),
+    });
+}
+
+/**
+ * Guest-side: the host let this guest in — the normal serverInfo/addPeer
+ * handshake follows right behind this event.
+ */
+function handleKnockAdmitted() {
+    if (Swal.isVisible()) Swal.close();
+}
+
+/**
+ * Guest-side: the host declined this guest.
+ */
+function handleKnockRejected() {
+    playSound('eject');
+    Swal.fire({
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        background: swBg,
+        imageUrl: images.forbidden,
+        position: 'center',
+        title: 'Not admitted',
+        text: 'The host did not let you into this room.',
+        confirmButtonText: 'OK',
+        showClass: { popup: 'animate__animated animate__fadeInDown' },
+        hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+    }).then(() => {
+        openURL('/newcall');
+    });
 }
 
 /**
@@ -18596,9 +18808,56 @@ function initExitMeeting() {
 /**
  * Leave the Room and create a new one
  */
-function leaveRoom() {
+async function leaveRoom() {
     if (isLeavingRoom) return;
-    return surveyActive ? leaveFeedback() : exitRoom();
+    if (surveyActive) return leaveFeedback();
+    await maybeOfferRoomLink();
+    return exitRoom();
+}
+
+let roomLinkCaptureOffered = false;
+
+/**
+ * Optional, dismissible "email me this room link" prompt — VCPeer's
+ * post-call re-engagement channel (see app/src/roomLink.js and the
+ * /my-rooms lookup page). Fires at most once per session, right before the
+ * room is actually left, and never blocks or delays leaving: a skip, an
+ * invalid email, or a network error all just resolve and let the normal
+ * exit continue.
+ */
+async function maybeOfferRoomLink() {
+    if (roomLinkCaptureOffered) return;
+    roomLinkCaptureOffered = true;
+
+    try {
+        const result = await Swal.fire({
+            background: swBg,
+            position: 'center',
+            title: 'Email me this room link',
+            html: '<p class="room-link-capture-hint">Get a link back to this same room, so you do not have to save it yourself.</p><input id="roomLinkEmailInput" type="email" class="swal2-input" placeholder="you@example.com" autocomplete="email" />',
+            showCancelButton: true,
+            confirmButtonText: 'Email me the link',
+            cancelButtonText: 'Skip',
+            reverseButtons: true,
+            focusConfirm: false,
+            showClass: { popup: 'animate__animated animate__fadeInDown' },
+            hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+            preConfirm: () => {
+                const value = getId('roomLinkEmailInput')?.value?.trim();
+                if (!value) {
+                    Swal.showValidationMessage('Enter an email address, or Skip.');
+                    return false;
+                }
+                return value;
+            },
+        });
+
+        if (result.isConfirmed && result.value) {
+            await axios.post('/api/v1/room-link/email', { email: result.value, roomId: roomId });
+        }
+    } catch (err) {
+        console.warn('Room link capture skipped:', err);
+    }
 }
 
 /**
@@ -18704,10 +18963,12 @@ function leaveFeedback() {
         },
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
+            await maybeOfferRoomLink();
             return exitRoom();
         } else if (result.isDenied) {
+            await maybeOfferRoomLink();
             return exitRoom(surveyURL);
         }
     });

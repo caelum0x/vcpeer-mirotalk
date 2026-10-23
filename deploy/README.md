@@ -106,28 +106,33 @@ package.json, README.md) to match if that happens.
 
 ## Launchboard/Notify data files and local-disk upload storage — never overwrite on redeploy
 
-Launchboard submissions persist to `app/data/launchboard.json` and Notify signups to
-`app/data/notify.json` on the box (no DB is wired into this fork — see
-`app/src/launchboard.js` / `app/src/notify.js`). VCPeer Send transfers and VCPeer Clips
-recordings, when `*_STORAGE_DRIVER` is left at its default `local` (no R2 bucket
-configured), persist encrypted blobs + metadata under `app/src/data/transfers/` and
-`app/src/data/clips/` respectively. The live box is a plain rsync'd directory, not a
-git checkout, so any redeploy command MUST exclude all four of these or real user data
-(founder submissions, notify signups, in-flight/shared Send transfers, Clips recordings)
-is lost on the next push:
+Launchboard submissions persist to `app/data/launchboard.json`, Notify signups to
+`app/data/notify.json`, Room Link email->room captures to `app/data/room-links.json`,
+and durable named-room claims (room name -> salted passcode hash) to
+`app/data/room-claims.json` on the box (no DB is wired into this fork — see
+`app/src/launchboard.js` / `app/src/notify.js` / `app/src/roomLink.js` /
+`app/src/roomClaims.js`). VCPeer Send transfers and VCPeer Clips recordings, when
+`*_STORAGE_DRIVER` is left at its default `local` (no R2 bucket configured), persist
+encrypted blobs + metadata under `app/src/data/transfers/` and `app/src/data/clips/`
+respectively. The live box is a plain rsync'd directory, not a git checkout, so any
+redeploy command MUST exclude all six of these or real user data (founder submissions,
+notify signups, room-link captures, claimed room passcodes, in-flight/shared Send
+transfers, Clips recordings) is lost on the next push:
 
 ```
 rsync -az --delete \
   --exclude node_modules --exclude .git --exclude .env \
   --exclude app/data/launchboard.json \
   --exclude app/data/notify.json \
+  --exclude app/data/room-links.json \
+  --exclude app/data/room-claims.json \
   --exclude app/src/data/transfers \
   --exclude app/src/data/clips \
   ./ deploy@130.61.180.42:/srv/src/vcpeer/
 pm2 restart vcpeer
 ```
 
-`LAUNCHBOARD_DATA_DIR`/`NOTIFY_DATA_DIR`/`SEND_LINK_DATA_DIR`/`CLIPS_DATA_DIR` env vars
+`LAUNCHBOARD_DATA_DIR`/`NOTIFY_DATA_DIR`/`ROOM_LINK_DATA_DIR`/`ROOM_CLAIMS_DATA_DIR`/`SEND_LINK_DATA_DIR`/`CLIPS_DATA_DIR` env vars
 can point these at paths outside the synced tree entirely if that's ever preferred
 (or switch `SEND_LINK_STORAGE_DRIVER`/`CLIPS_STORAGE_DRIVER` to `r2` once a bucket is
 provisioned, which removes this risk for Send/Clips entirely since blobs then live in
@@ -150,6 +155,8 @@ rsync -az --delete \
   --exclude node_modules --exclude .git --exclude .env \
   --exclude app/data/launchboard.json \
   --exclude app/data/notify.json \
+  --exclude app/data/room-links.json \
+  --exclude app/data/room-claims.json \
   --exclude app/src/data/transfers \
   --exclude app/src/data/clips \
   --exclude .node22 \

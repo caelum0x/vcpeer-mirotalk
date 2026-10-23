@@ -5537,6 +5537,12 @@ input:checked + .slider:before {
     background-image: linear-gradient(var(--swal-button-hover), var(--swal-button-hover)) !important;
 }
 
+.room-link-capture-hint {
+    margin: 0 0 12px;
+    color: var(--ds-neutral-500, #6a6f82);
+    font-size: 0.9em;
+}
+
 .swal2-popup .swal2-actions .swal2-styled.init-join-button {
     color: #fff !important;
     background: var(--swal-join-bg, #294da8) !important;
@@ -7230,6 +7236,100 @@ body {
 .panel-slide-in {
     animation: slideInFromRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
     transition: none !important; /* suppress width/size transitions while slide is playing */
+}
+
+/*--------------------------------------------------------------
+# Lobby — host-facing "guests waiting to join" floating panel
+--------------------------------------------------------------*/
+.lobby-waiting-panel {
+    position: fixed;
+    top: var(--ds-space-5);
+    right: var(--ds-space-5);
+    z-index: var(--ds-z-overlay);
+    width: min(320px, calc(100vw - 32px));
+    max-height: min(360px, calc(100vh - 32px));
+    overflow-y: auto;
+    background: var(--ds-neutral-900);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ds-radius-lg);
+    box-shadow: var(--ds-shadow-lg);
+    color: var(--ds-neutral-0);
+    font-family: var(--ds-font-sans);
+    animation: slideInFromRight var(--ds-duration-slow) var(--ds-ease-spring);
+}
+
+.lobby-waiting-panel-header {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-4) var(--ds-space-4) var(--ds-space-2);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ds-neutral-0);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lobby-waiting-panel-header i {
+    color: var(--ds-brand-500);
+}
+
+.lobby-waiting-panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+    padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-4);
+}
+
+.lobby-waiting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-3);
+    padding: var(--ds-space-2) var(--ds-space-3);
+    border-radius: var(--ds-radius-md);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.lobby-waiting-name {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lobby-waiting-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-space-2);
+    flex-shrink: 0;
+}
+
+.lobby-admit-btn,
+.lobby-reject-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--ds-radius-full);
+    cursor: pointer;
+    transition: transform var(--ds-duration-fast) var(--ds-ease-out);
+}
+
+.lobby-admit-btn {
+    background: var(--ds-success);
+    color: var(--ds-neutral-900);
+}
+
+.lobby-reject-btn {
+    background: var(--ds-danger);
+    color: var(--ds-neutral-0);
+}
+
+.lobby-admit-btn:hover,
+.lobby-reject-btn:hover {
+    transform: scale(1.08);
 }
 
 /*

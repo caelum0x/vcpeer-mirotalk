@@ -40,6 +40,13 @@ deploy/.env.production
 app/data/launchboard.json
 app/data/notify.json
 
+# Room Link email->room-link captures (real user data, same reasoning as above)
+app/data/room-links.json
+
+# Durable named room claims (room name -> salted passcode hash; never commit
+# or let a redeploy overwrite them, same reasoning as above)
+app/data/room-claims.json
+
 # VCPeer Coworker conversation threads (real user data, never commit or let a
 # redeploy overwrite them — see deploy/README.md)
 app/data/coworker/

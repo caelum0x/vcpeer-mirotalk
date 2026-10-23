@@ -97,6 +97,53 @@ const notifySubmitLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// Room Link: capturing an email->room association sends a transactional
+// email and writes to disk — same shape as notifySubmitLimiter.
+const roomLinkEmailLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
+// Room Link lookup (/my-rooms): a read-only endpoint, but it's keyed by an
+// unauthenticated, attacker-controlled email string — cap it so it can't be
+// used to hammer disk reads or enumerate addresses at volume.
+const roomLinkLookupLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
+// Durable named rooms: claiming/updating/releasing a room name writes to
+// disk and is a guessable-passcode brute-force surface, so keep this tight
+// — same shape as launchboardSubmitLimiter but a lower ceiling since a real
+// user claims a handful of rooms, not dozens per minute.
+const roomClaimLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
+// Checking whether a room name is already claimed is read-only but still
+// unauthenticated and cheap to hammer — cap it generously.
+const roomClaimStatusLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
 // VCPeer Send "Send a link": creating a transfer declares a size and reserves
 // quota, so keep this tighter than the cheap read-only endpoints below.
 const transferCreateLimiter = rateLimit({
@@ -209,6 +256,10 @@ module.exports = {
     sendCodeResolveLimiter,
     launchboardSubmitLimiter,
     notifySubmitLimiter,
+    roomLinkEmailLimiter,
+    roomLinkLookupLimiter,
+    roomClaimLimiter,
+    roomClaimStatusLimiter,
     transferCreateLimiter,
     transferChunkLimiter,
     transferEmailVerifyLimiter,

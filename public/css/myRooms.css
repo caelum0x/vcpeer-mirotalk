@@ -1,0 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+:root {
+    --mr-primary-bg: #0f1117;
+    --mr-card-bg: #1e2128;
+    --mr-card-bg-hover: #252830;
+    --mr-accent: #4678f9;
+    --mr-accent-hover: #2a5ad6;
+    --mr-text: #e8ecf1;
+    --mr-text-muted: #8b95a5;
+    --mr-border: #2a2d35;
+    --mr-danger: #e74c3c;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--mr-primary-bg);
+    margin: 0;
+    padding: 0;
+    color: var(--mr-text);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 48px 24px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-left i {
+    font-size: 1.4em;
+    color: var(--mr-accent);
+}
+
+.header h1 {
+    font-size: 1.4em;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.header-home-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    color: var(--mr-text-muted);
+    background: var(--mr-card-bg);
+    text-decoration: none;
+    transition: 0.2s ease;
+}
+
+.header-home-link:hover {
+    color: var(--mr-text);
+    background: var(--mr-card-bg-hover);
+}
+
+.subtitle {
+    color: var(--mr-text-muted);
+    font-size: 0.95em;
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.lookup-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.email-input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--mr-border);
+    background: var(--mr-card-bg);
+    color: var(--mr-text);
+    font-size: 0.95em;
+    font-family: inherit;
+}
+
+.email-input:focus {
+    outline: none;
+    border-color: var(--mr-accent);
+}
+
+.lookup-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 10px;
+    background: var(--mr-accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95em;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+.lookup-btn:hover {
+    background: var(--mr-accent-hover);
+}
+
+.lookup-btn:disabled,
+.lookup-btn.is-loading {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.status-message {
+    min-height: 20px;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    color: var(--mr-text-muted);
+}
+
+.status-message.status-error {
+    color: var(--mr-danger);
+}
+
+.status-message.status-empty {
+    color: var(--mr-text-muted);
+}
+
+.rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.room-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--mr-card-bg);
+    border: 1px solid var(--mr-border);
+}
+
+.room-card-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.room-card-main i {
+    color: var(--mr-accent);
+    font-size: 1.1em;
+    flex-shrink: 0;
+}
+
+.room-card-text {
+    min-width: 0;
+}
+
+.room-card-id {
+    font-weight: 600;
+    font-size: 0.95em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.room-card-time {
+    color: var(--mr-text-muted);
+    font-size: 0.8em;
+}
+
+.room-card-join {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(70, 120, 249, 0.15);
+    color: var(--mr-accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85em;
+    flex-shrink: 0;
+    transition: 0.2s ease;
+}
+
+.room-card-join:hover {
+    background: rgba(70, 120, 249, 0.28);
+}
+
+@media (max-width: 480px) {
+    .lookup-form {
+        flex-direction: column;
+    }
+
+    .lookup-btn {
+        padding: 12px;
+        justify-content: center;
+    }
+}

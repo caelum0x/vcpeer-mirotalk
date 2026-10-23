@@ -292,4 +292,152 @@ document.addEventListener('DOMContentLoaded', () => {
             setError(err?.message || 'Unable to build join URL');
         }
     });
+
+    // --- Durable named rooms (claim this room name + a fixed passcode) ---
+    // See app/src/roomClaims.js and POST /api/v1/rooms/claim. This is the one
+    // part of this page that IS saved server-side — everything else here is
+    // just encoded into the /join link itself.
+    const claimStatusEl = document.getElementById('crClaimStatus');
+    const claimErrorEl = document.getElementById('crClaimError');
+    const currentPasscodeLabelEl = document.getElementById('crCurrentPasscodeLabel');
+    const currentPasscodeEl = document.getElementById('crCurrentPasscode');
+    const passcodeEl = document.getElementById('crPasscode');
+    const ownerEmailEl = document.getElementById('crOwnerEmail');
+    const claimBtn = document.getElementById('crClaimBtn');
+    const releaseClaimBtn = document.getElementById('crReleaseClaimBtn');
+
+    let roomIsClaimed = false;
+    let claimStatusRoom = '';
+
+    const setClaimError = (msg) => {
+        if (!claimErrorEl) return;
+        claimErrorEl.hidden = !msg;
+        claimErrorEl.textContent = msg || '';
+    };
+
+    const setClaimStatus = (msg) => {
+        if (!claimStatusEl) return;
+        claimStatusEl.textContent = msg || '';
+    };
+
+    const applyClaimState = (claimed) => {
+        roomIsClaimed = claimed;
+        if (currentPasscodeLabelEl) currentPasscodeLabelEl.hidden = !claimed;
+        if (currentPasscodeEl) currentPasscodeEl.hidden = !claimed;
+        if (releaseClaimBtn) releaseClaimBtn.hidden = !claimed;
+        if (claimBtn) claimBtn.textContent = claimed ? 'Update this room’s passcode' : 'Claim this room name';
+        setClaimStatus(
+            claimed
+                ? 'This room name is already claimed. Enter its current passcode to update it, or release it below.'
+                : 'This room name is not claimed yet.'
+        );
+    };
+
+    let claimStatusDebounce = null;
+    const refreshClaimStatus = () => {
+        const room = safe(roomEl?.value);
+        claimStatusRoom = room;
+        if (!room) {
+            setClaimStatus('');
+            applyClaimState(false);
+            return;
+        }
+        clearTimeout(claimStatusDebounce);
+        claimStatusDebounce = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/v1/rooms/claim/status?roomId=${encodeURIComponent(room)}`);
+                if (!response.ok) return;
+                const data = await response.json();
+                // Ignore a stale response if the room field changed meanwhile.
+                if (claimStatusRoom !== room) return;
+                applyClaimState(!!data?.claimed);
+            } catch {
+                // Network hiccup — leave the current claim UI state as-is.
+            }
+        }, 400);
+    };
+
+    if (roomEl) {
+        roomEl.addEventListener('input', refreshClaimStatus);
+        roomEl.addEventListener('change', refreshClaimStatus);
+        refreshClaimStatus();
+    }
+
+    if (claimBtn) {
+        claimBtn.addEventListener('click', async () => {
+            setClaimError('');
+            const room = safe(roomEl?.value);
+            const passcode = passcodeEl?.value || '';
+            const currentPasscode = currentPasscodeEl?.value || '';
+            const ownerEmail = safe(ownerEmailEl?.value);
+
+            if (!room) {
+                setClaimError('Enter a room name above first.');
+                return;
+            }
+            if (passcode.length < 4 || passcode.length > 64) {
+                setClaimError('Passcode must be 4-64 characters.');
+                return;
+            }
+            if (roomIsClaimed && !currentPasscode) {
+                setClaimError('Enter the current passcode to update this room.');
+                return;
+            }
+
+            claimBtn.disabled = true;
+            try {
+                const response = await fetch('/api/v1/rooms/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: room, passcode, currentPasscode, ownerEmail }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    setClaimError(data?.message || 'Unable to claim this room name.');
+                    return;
+                }
+                if (currentPasscodeEl) currentPasscodeEl.value = '';
+                setStatus('Room name claimed. Share the link and passcode with whoever joins.');
+                applyClaimState(true);
+            } catch {
+                setClaimError('Network error — please try again.');
+            } finally {
+                claimBtn.disabled = false;
+            }
+        });
+    }
+
+    if (releaseClaimBtn) {
+        releaseClaimBtn.addEventListener('click', async () => {
+            setClaimError('');
+            const room = safe(roomEl?.value);
+            const currentPasscode = currentPasscodeEl?.value || '';
+            if (!currentPasscode) {
+                setClaimError('Enter the current passcode to release this claim.');
+                return;
+            }
+
+            releaseClaimBtn.disabled = true;
+            try {
+                const response = await fetch('/api/v1/rooms/claim/release', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: room, passcode: currentPasscode }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    setClaimError(data?.message || 'Unable to release this claim.');
+                    return;
+                }
+                if (currentPasscodeEl) currentPasscodeEl.value = '';
+                if (passcodeEl) passcodeEl.value = '';
+                setStatus('Claim released — this room name is open to claim again.');
+                applyClaimState(false);
+            } catch {
+                setClaimError('Network error — please try again.');
+            } finally {
+                releaseClaimBtn.disabled = false;
+            }
+        });
+    }
 });

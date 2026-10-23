@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title id="title">VCPeer - My Rooms</title>
+        <link id="icon" rel="shortcut icon" href="../images/logo.svg" />
+        <link id="appleTouchIcon" rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <meta
+            name="description"
+            content="Look up the VCPeer room links you've been emailed, by email address. No account, no login."
+        />
+
+        <!-- https://ogp.me -->
+
+        <meta property="og:type" content="{{OG_TYPE}}" />
+        <meta property="og:site_name" content="{{OG_SITE_NAME}}" />
+        <meta property="og:title" content="{{OG_TITLE}}" />
+        <meta property="og:description" content="{{OG_DESCRIPTION}}" />
+        <meta property="og:image" content="{{OG_IMAGE}}" />
+        <meta property="og:url" content="{{OG_URL}}" />
+
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" type="text/css" href="../css/myRooms.css" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <i class="fa-solid fa-door-open"></i>
+                    <h1>My rooms</h1>
+                </div>
+                <a class="header-home-link" href="/"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
+            </div>
+            <p class="subtitle">
+                Enter the email you used when a room link was sent to you — we'll show your most recent rooms.
+            </p>
+
+            <form id="lookupForm" class="lookup-form" autocomplete="on">
+                <input
+                    id="emailInput"
+                    class="email-input"
+                    type="email"
+                    name="email"
+                    placeholder="you@example.com"
+                    required
+                    aria-label="Email address"
+                />
+                <button id="lookupBtn" class="lookup-btn" type="submit">
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <span>Find my rooms</span>
+                </button>
+            </form>
+
+            <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+
+            <div id="roomsList" class="rooms-list"></div>
+        </div>
+        <script defer src="../js/myRooms.js"></script>
+    </body>
+</html>

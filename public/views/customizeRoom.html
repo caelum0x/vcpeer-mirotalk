@@ -217,6 +217,72 @@
                             </div>
                         </div>
                     </details>
+
+                    <details class="cr-section cr-advanced" id="crClaimSection">
+                        <summary>
+                            <span class="cr-step">04</span>
+                            <span
+                                ><strong>Claim this room name</strong
+                                ><small>Keep this exact link + passcode for every future call</small></span
+                            >
+                            <span class="cr-chevron" aria-hidden="true"></span>
+                        </summary>
+                        <div class="cr-field-grid cr-advanced-fields">
+                            <p class="cr-hint" id="crClaimHint">
+                                Unlike the rest of this page, a claim is saved on the server: once claimed, this
+                                room name always requires its passcode to join — including the very first time it's
+                                opened in a new session.
+                            </p>
+                            <p class="cr-hint" id="crClaimStatus" role="status" aria-live="polite"></p>
+                            <div class="cr-field">
+                                <label class="cr-label" for="crCurrentPasscode" id="crCurrentPasscodeLabel" hidden
+                                    >Current passcode</label
+                                >
+                                <input
+                                    id="crCurrentPasscode"
+                                    class="cr-input"
+                                    type="password"
+                                    autocomplete="off"
+                                    placeholder="Current passcode"
+                                    maxlength="64"
+                                    hidden
+                                />
+                            </div>
+                            <div class="cr-field">
+                                <label class="cr-label" for="crPasscode" id="crPasscodeLabel"
+                                    >New passcode <span class="cr-optional">4-64 characters</span></label
+                                >
+                                <input
+                                    id="crPasscode"
+                                    class="cr-input"
+                                    type="password"
+                                    autocomplete="off"
+                                    placeholder="A passcode everyone on your team can reuse"
+                                    maxlength="64"
+                                />
+                            </div>
+                            <div class="cr-field">
+                                <label class="cr-label" for="crOwnerEmail"
+                                    >Owner email <span class="cr-optional">Optional</span></label
+                                >
+                                <input
+                                    id="crOwnerEmail"
+                                    class="cr-input"
+                                    type="email"
+                                    autocomplete="email"
+                                    placeholder="you@example.com"
+                                    maxlength="254"
+                                />
+                            </div>
+                            <div class="cr-field cr-field-wide">
+                                <button id="crClaimBtn" class="cr-copy" type="button">Claim this room name</button>
+                                <button id="crReleaseClaimBtn" class="cr-copy" type="button" hidden>
+                                    Release claim
+                                </button>
+                            </div>
+                            <p class="cr-error" id="crClaimError" role="alert" hidden></p>
+                        </div>
+                    </details>
                 </div>
 
                 <aside class="cr-summary" aria-labelledby="cr-summary-heading">
