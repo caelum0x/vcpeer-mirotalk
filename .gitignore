@@ -51,6 +51,10 @@ app/data/room-claims.json
 # user data, same reasoning as above)
 app/data/meeting-notes.json
 
+# Schedule — scheduled meetings (title/description/start time, real user
+# data, same reasoning as above)
+app/data/schedule.json
+
 # VCPeer Coworker conversation threads (real user data, never commit or let a
 # redeploy overwrite them — see deploy/README.md)
 app/data/coworker/

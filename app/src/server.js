@@ -79,6 +79,7 @@ const { renderNotifyPage } = require('./notifyView');
 const RoomLink = require('./roomLink');
 const RoomClaims = require('./roomClaims');
 const MeetingNotes = require('./meetingNotes');
+const Schedule = require('./schedule');
 const { sendMail } = require('./lib/mailClient');
 const HtmlInjector = require('./htmlInjector');
 const Host = require('./host');
@@ -108,6 +109,10 @@ const {
     notesCreateLimiter,
     notesViewLimiter,
     notesDeleteLimiter,
+    scheduleCreateLimiter,
+    scheduleViewLimiter,
+    scheduleIcsLimiter,
+    scheduleCancelLimiter,
 } = require('./middleware/rateLimiter');
 const { initTransfers } = require('./transfers');
 const { initCoworker } = require('./coworker');
@@ -483,6 +488,8 @@ const views = {
     myRooms: path.join(__dirname, '../../', 'public/views/myRooms.html'),
     // Meeting Notes — shareable persisted transcript + AI summary, see app/src/meetingNotes.js
     notes: path.join(__dirname, '../../', 'public/views/notes.html'),
+    // Schedule — same-origin create form + /schedule/:id view + .ics download, see app/src/schedule.js
+    schedule: path.join(__dirname, '../../', 'public/views/schedule.html'),
     customizeRoom: path.join(__dirname, '../../', 'public/views/customizeRoom.html'),
     stunTurn: path.join(__dirname, '../../', 'public/views/testStunTurn.html'),
     waitingRoom: path.join(__dirname, '../../', 'public/views/waitingRoom.html'),
@@ -1172,6 +1179,71 @@ app.delete(`${apiBasePath}/notes/manage/:manageToken`, notesDeleteLimiter, (req,
 
 app.get('/notes/:id', (req, res) => {
     res.sendFile(views.notes);
+});
+
+// Schedule — same-origin "schedule a meeting" create form + shareable
+// /schedule/:id view page + a downloadable standards-compliant .ics file,
+// see app/src/schedule.js. Backlog item #6 in BUILD-LOG-2026-10-23.md: the
+// only prior "scheduling" flow was shareRoomByEmail() opening the visitor's
+// own mailto: client, with nothing persisted and no calendar file produced.
+app.post(`${apiBasePath}/schedule`, scheduleCreateLimiter, (req, res) => {
+    const fields = checkXSS(req.body || {});
+
+    const result = Schedule.createSchedule(fields, config.schedule);
+    if (!result.ok) {
+        return res.status(422).json({ message: result.error });
+    }
+
+    const { record } = result;
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const url = `${origin}/schedule/${record.id}`;
+    const manageUrl = `${url}?manageToken=${record.manageToken}`;
+    const roomUrl = `${origin}/join/${encodeURIComponent(record.roomId)}`;
+    const icsUrl = `${origin}${apiBasePath}/schedule/${record.id}/ics`;
+
+    res.json({ id: record.id, url, manageUrl, roomUrl, icsUrl });
+});
+
+app.get(`${apiBasePath}/schedule/:id`, scheduleViewLimiter, (req, res) => {
+    const fields = checkXSS(req.params || {});
+    const schedule = Schedule.getSchedule(fields.id, config.schedule);
+    if (!schedule) {
+        return res.status(404).json({ message: 'Not found.' });
+    }
+    const origin = `${req.protocol}://${req.get('host')}`;
+    res.json({ ...schedule, roomUrl: `${origin}/join/${encodeURIComponent(schedule.roomId)}` });
+});
+
+app.get(`${apiBasePath}/schedule/:id/ics`, scheduleIcsLimiter, (req, res) => {
+    const fields = checkXSS(req.params || {});
+    const schedule = Schedule.getSchedule(fields.id, config.schedule);
+    if (!schedule) {
+        return res.status(404).json({ message: 'Not found.' });
+    }
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const roomUrl = `${origin}/join/${encodeURIComponent(schedule.roomId)}`;
+    const ics = Schedule.buildIcs({ ...schedule, roomUrl });
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${schedule.id}.ics"`);
+    res.send(ics);
+});
+
+app.delete(`${apiBasePath}/schedule/manage/:manageToken`, scheduleCancelLimiter, (req, res) => {
+    const fields = checkXSS(req.params || {});
+    const result = Schedule.cancelByManageToken(fields.manageToken, config.schedule);
+    if (!result.ok) {
+        return res.status(404).json({ message: result.error });
+    }
+    res.json({ message: 'ok' });
+});
+
+app.get('/schedule', (req, res) => {
+    res.sendFile(views.schedule);
+});
+
+app.get('/schedule/:id', (req, res) => {
+    res.sendFile(views.schedule);
 });
 
 // VCPeer Send "Send a link" — WeTransfer-style upload-and-share, encrypted at

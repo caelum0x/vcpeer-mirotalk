@@ -283,6 +283,50 @@ const notesDeleteLimiter = rateLimit({
     keyGenerator: getClientIP,
 });
 
+// Schedule: creating a scheduled meeting writes to disk — same shape as
+// notesCreateLimiter, slightly looser ceiling since it's a plain write with
+// no AI relay call behind it.
+const scheduleCreateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 40,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many meetings scheduled. Please try again in an hour.' },
+    keyGenerator: getClientIP,
+});
+
+// Reading a shared /schedule/:id page — same shape as notesViewLimiter, the
+// id itself is the secret.
+const scheduleViewLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
+// Downloading the .ics file — same ceiling as the view page, a real
+// organizer may re-download it a few times across different calendar apps.
+const scheduleIcsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again in a minute.' },
+    keyGenerator: getClientIP,
+});
+
+// Cancelling via manageToken — same tight ceiling as notesDeleteLimiter.
+const scheduleCancelLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests. Please try again later.' },
+    keyGenerator: getClientIP,
+});
+
 module.exports = {
     loginLimiter,
     createRoomTokenLimiter,
@@ -306,4 +350,8 @@ module.exports = {
     notesCreateLimiter,
     notesViewLimiter,
     notesDeleteLimiter,
+    scheduleCreateLimiter,
+    scheduleViewLimiter,
+    scheduleIcsLimiter,
+    scheduleCancelLimiter,
 };

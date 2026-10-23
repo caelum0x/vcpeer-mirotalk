@@ -796,4 +796,29 @@ module.exports = {
         // summarizer (the full transcript is still stored/displayed either way).
         summaryMaxLines: parseInt(process.env.MEETING_NOTES_SUMMARY_MAX_LINES) || 400,
     },
+
+    // ==========================================
+    // Schedule — same-origin /schedule create form + /schedule/:id view page
+    // + a downloadable .ics calendar file, see app/src/schedule.js.
+    // ==========================================
+    // Before this, "scheduling" a VCPeer call only opened the visitor's own
+    // mail client via a mailto: link (public/js/client.js shareRoomByEmail)
+    // — nothing persisted server-side and no calendar file was produced.
+    // Same on-disk-JSON-file convention as notify.js/roomLink.js/
+    // meetingNotes.js — no database in this fork.
+    schedule: {
+        dataDir: process.env.SCHEDULE_DATA_DIR || path.join(__dirname, '../data'),
+        maxRecords: parseInt(process.env.SCHEDULE_MAX_RECORDS) || 20000,
+        // Scheduled meetings are kept this many days after they end, so the
+        // /schedule/:id page and its .ics link both keep working for a
+        // reasonable look-back window even after the meeting has happened.
+        retentionDaysAfterMeeting: parseInt(process.env.SCHEDULE_RETENTION_DAYS_AFTER) || 60,
+        titleMaxChars: parseInt(process.env.SCHEDULE_TITLE_MAX_CHARS) || 200,
+        descriptionMaxChars: parseInt(process.env.SCHEDULE_DESCRIPTION_MAX_CHARS) || 2000,
+        organizerNameMaxChars: parseInt(process.env.SCHEDULE_ORGANIZER_NAME_MAX_CHARS) || 200,
+        minDurationMinutes: parseInt(process.env.SCHEDULE_MIN_DURATION_MINUTES) || 5,
+        maxDurationMinutes: parseInt(process.env.SCHEDULE_MAX_DURATION_MINUTES) || 480,
+        maxFutureDays: parseInt(process.env.SCHEDULE_MAX_FUTURE_DAYS) || 730,
+        pastGraceMinutes: parseInt(process.env.SCHEDULE_PAST_GRACE_MINUTES) || 5,
+    },
 };

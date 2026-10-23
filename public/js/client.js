@@ -404,6 +404,7 @@ const networkStun = getId('networkStun');
 const networkTurn = getId('networkTurn');
 const tabRoomBtn = getId('tabRoomBtn');
 const roomSendEmailBtn = getId('roomSendEmailBtn');
+const scheduleMeetingBtn = getId('scheduleMeetingBtn');
 const tabStylingBtn = getId('tabStylingBtn');
 const tabLanguagesBtn = getId('tabLanguagesBtn');
 const mySettingsCloseBtn = getId('mySettingsCloseBtn');
@@ -9049,6 +9050,13 @@ function setupMySettings() {
     // send invite by email to join room in a specified data-time
     roomSendEmailBtn.addEventListener('click', () => {
         shareRoomByEmail();
+    });
+    // open the same-origin /schedule page, prefilled with this room name, so
+    // the organizer gets a shareable link + a real .ics calendar file
+    // instead of only a mailto: invite (see app/src/schedule.js)
+    scheduleMeetingBtn.addEventListener('click', () => {
+        const params = new URLSearchParams({ roomId: roomId });
+        window.open(`/schedule?${params.toString()}`, '_blank', 'noopener,noreferrer');
     });
     // tab media
     shareMediaAudioVideoBtn.addEventListener('click', (e) => {

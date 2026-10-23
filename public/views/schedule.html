@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title id="title">Schedule a meeting — VCPeer</title>
+        <link id="icon" rel="shortcut icon" href="../images/logo.svg" />
+        <link id="appleTouchIcon" rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <meta
+            name="description"
+            content="Schedule a VCPeer video call and get a shareable link with a calendar (.ics) invite — no account, no login."
+        />
+
+        <!-- https://ogp.me -->
+
+        <meta property="og:type" content="{{OG_TYPE}}" />
+        <meta property="og:site_name" content="{{OG_SITE_NAME}}" />
+        <meta property="og:title" content="{{OG_TITLE}}" />
+        <meta property="og:description" content="{{OG_DESCRIPTION}}" />
+        <meta property="og:image" content="{{OG_IMAGE}}" />
+        <meta property="og:url" content="{{OG_URL}}" />
+
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+        <link rel="stylesheet" href="../css/_tokens.css" />
+        <link rel="stylesheet" type="text/css" href="../css/schedule.css" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                    <h1 id="pageTitle">Schedule a meeting</h1>
+                </div>
+                <a class="header-home-link" href="/"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
+            </div>
+            <p class="subtitle" id="pageSubtitle">
+                Pick a time, get a shareable link and a calendar invite. No account, no login.
+            </p>
+
+            <!-- Create form -->
+            <form id="createForm" class="schedule-form">
+                <label class="field-label" for="titleInput">Title</label>
+                <input
+                    id="titleInput"
+                    class="text-input"
+                    type="text"
+                    name="title"
+                    placeholder="Weekly sync"
+                    maxlength="200"
+                    required
+                />
+
+                <div class="field-row">
+                    <div class="field-col">
+                        <label class="field-label" for="startInput">Date and time</label>
+                        <input id="startInput" class="text-input" type="datetime-local" name="startTime" required />
+                    </div>
+                    <div class="field-col field-col-narrow">
+                        <label class="field-label" for="durationInput">Length</label>
+                        <select id="durationInput" class="text-input" name="durationMinutes">
+                            <option value="15">15 min</option>
+                            <option value="30" selected>30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">1 hour</option>
+                            <option value="90">1.5 hours</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="field-label" for="roomIdInput">Room name <span class="field-optional">(optional)</span></label>
+                <input
+                    id="roomIdInput"
+                    class="text-input"
+                    type="text"
+                    name="roomId"
+                    placeholder="Leave blank to auto-generate"
+                    maxlength="200"
+                />
+
+                <label class="field-label" for="organizerInput"
+                    >Your name <span class="field-optional">(optional)</span></label
+                >
+                <input
+                    id="organizerInput"
+                    class="text-input"
+                    type="text"
+                    name="organizerName"
+                    placeholder="Jane Doe"
+                    maxlength="200"
+                />
+
+                <label class="field-label" for="descriptionInput"
+                    >Notes <span class="field-optional">(optional)</span></label
+                >
+                <textarea
+                    id="descriptionInput"
+                    class="text-input text-area"
+                    name="description"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="Agenda, context, anything your attendees should know"
+                ></textarea>
+
+                <div id="formStatus" class="status-message" role="status" aria-live="polite"></div>
+
+                <button id="submitBtn" class="primary-btn" type="submit">
+                    <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
+                    <span>Schedule meeting</span>
+                </button>
+            </form>
+
+            <!-- Loading / error states (view mode) -->
+            <div id="viewLoading" class="status-block" hidden>Loading meeting…</div>
+            <div id="viewError" class="status-block status-error" hidden>
+                This meeting doesn't exist, or has been cancelled.
+            </div>
+
+            <!-- Result / view card -->
+            <div id="resultCard" class="result-card" hidden>
+                <div class="result-head">
+                    <h2 id="resultTitle" class="result-title"></h2>
+                    <p id="resultWhen" class="result-when"></p>
+                    <p id="resultOrganizer" class="result-organizer" hidden></p>
+                </div>
+
+                <p id="resultDescription" class="result-description" hidden></p>
+
+                <div class="result-actions">
+                    <a id="joinBtn" class="action-btn action-btn-primary" href="#">
+                        <i class="fa-solid fa-video" aria-hidden="true"></i>
+                        <span>Join room</span>
+                    </a>
+                    <a id="icsBtn" class="action-btn" href="#">
+                        <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
+                        <span>Add to calendar</span>
+                    </a>
+                    <a id="googleCalBtn" class="action-btn" href="#" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-brands fa-google" aria-hidden="true"></i>
+                        <span>Google Calendar</span>
+                    </a>
+                </div>
+
+                <div class="result-share-row">
+                    <input id="shareUrlInput" class="text-input" type="text" readonly aria-label="Shareable link" />
+                    <button type="button" id="copyShareBtn" class="action-btn">
+                        <i class="fa-solid fa-link" aria-hidden="true"></i>
+                        <span>Copy link</span>
+                    </button>
+                </div>
+
+                <button type="button" id="cancelBtn" class="cancel-btn" hidden>
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                    <span>Cancel meeting</span>
+                </button>
+            </div>
+        </div>
+        <script defer src="../js/schedule.js"></script>
+    </body>
+</html>
